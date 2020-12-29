@@ -1,0 +1,9 @@
+RewriteEngine On
+
+# Force HTTPS
+RewriteCond %{HTTPS} off
+RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
+# Decks
+RewriteRule ^deck/([a-z]+)/$ index.php?deck=$1&action=show [L]
+RewriteRule ^deck/([a-z]+)/edit/$ index.php?deck=$1&action=edit [L]

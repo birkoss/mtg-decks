@@ -21,10 +21,12 @@ if ($deck != "") {
 
 	$types = array(
 		"commander" => array(
-			"label" => "Commander"
+			"label" => "Commander",
+			"type" => "creature"
 		),
 		"creatures" => array(
-			"label" => "Creatures"
+			"label" => "Creatures",
+			"type" => "creature"
 		)
 	);
 
@@ -38,7 +40,7 @@ if ($deck != "") {
 		  		<button class="btn-search-cards btn btn-primary my-2 my-sm-0" data-type="<?php echo json_encode($type) ?>">Search</button>
 		  	<?php } ?>
 		  </div>
-		  <div class="card-body">
+		  <div class="card-body mtg-cards">
 		    <p class="card-text">No cards for the moment.</p>
 		  </div>
 		</div>
@@ -46,30 +48,30 @@ if ($deck != "") {
 	}
 	echo '</div>';
 	?>
-<div class="modal fade" id="modalSearchCard" data-bs-backdrop="static" data-bs-keyboard="false">
-  <div class="modal-dialog" role="document">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title">Cards Search</h5>
-        <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
-          <span aria-hidden="true">&times;</span>
-        </button>
-      </div>
-      <div class="modal-body">
-        <form id="formSearchCard">
-		   <div class="form-group">
-		      <label for="inputSearchCard">Card Name</label>
-		      <input type="text" class="form-control" style="max-width: 300px;" id="inputSearchCard" placeholder="Card Name" autocomplete="off" />
-		    </div>
-		</form>
-		<div id="resultSearchCard"></div>
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-      </div>
-    </div>
-  </div>
-</div>
+	<div class="modal fade" id="modalSearchCard" data-bs-backdrop="static" data-bs-keyboard="false">
+	<div class="modal-dialog" role="document">
+		<div class="modal-content">
+		<div class="modal-header">
+			<h5 class="modal-title">Cards Search</h5>
+			<button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
+			<span aria-hidden="true">&times;</span>
+			</button>
+		</div>
+		<div class="modal-body">
+			<form id="formSearchCard">
+			<div class="form-group">
+				<label for="inputSearchCard">Card Name</label>
+				<input type="text" class="form-control" style="max-width: 300px;" id="inputSearchCard" placeholder="Card Name" autocomplete="off" />
+				</div>
+			</form>
+			<div id="resultSearchCard"></div>
+		</div>
+		<div class="modal-footer">
+			<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+		</div>
+		</div>
+	</div>
+	</div>
 	<?php
 } else {
 	?>

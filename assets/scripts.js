@@ -1,10 +1,10 @@
 jQuery(document).ready(function() {
 
+    /* Add existing deck cards in containers */
     if (deck_data !== undefined) {
         jQuery(".card-type").each(function (index_type, element_type) {
 
             jQuery(".card-type").attr("data-active", 0);
-
             if (deck_data['cards'][ jQuery(element_type).data("type") ] !== undefined && deck_data['cards'][ jQuery(element_type).data("type") ].length > 0) {
                 jQuery(element_type).attr("data-active", 1);
 
@@ -14,11 +14,10 @@ jQuery(document).ready(function() {
             }
         });
 
-        jQuery('img').popover({
-            html: true,
-            content: show_popover,
-            placement: "bottom"
-        });
+        jQuery(".card-type").attr("data-active", 0);
+
+        /* Enable events */
+        create_deck_cards_events();
     }
 
     /* Search the API when the modal form is submitted */
@@ -45,13 +44,9 @@ jQuery(document).ready(function() {
                 jQuery(".modal-body img.mtg-card-thumbnail").click(function(event) {
                     add_card(JSON.parse(window.atob(jQuery(this).parents(".mtg-card").data("card"))));
 
-                    jQuery('#modalSearchCard').modal("hide"); 
+                    create_deck_cards_events();
 
-                    jQuery('img').popover({
-                        html: true,
-                        content: show_popover,
-                        placement: "bottom"
-                    });
+                    jQuery('#modalSearchCard').modal("hide"); 
                 });
             }
         });
@@ -62,6 +57,7 @@ jQuery(document).ready(function() {
       jQuery('#inputSearchCard').trigger('focus')
     });
 
+    /* Btn SEARCH clicked in the Cart Type */
     jQuery(".card-type button.btn-search-cards").click(function(event) {
         event.preventDefault();
 
@@ -73,20 +69,7 @@ jQuery(document).ready(function() {
         jQuery('#modalSearchCard').modal("show");
     });
 
-    jQuery('img').on('shown.bs.popover', function () {
-        jQuery('img').not(this).popover('hide');
-
-      let image = this;
-      let popover_id = jQuery(this).attr("aria-describedby");
-
-        jQuery("#" + popover_id).click(function(event) {
-            jQuery(image).popover('hide');
-            jQuery(image).remove();
-        });
-    });
-
-    console.log("init");
-
+    /* Btn SAVE clicked in the footer */
     jQuery(".btn-save").click(function(event) {
         event.preventDefault();
 
@@ -100,7 +83,8 @@ jQuery(document).ready(function() {
 
             deck['cards'][ type ] = [];
 
-            jQuery(element_type).find("img.mtg-card-thumbnail").each(function (index_card, element_card) {
+            jQuery(element_type).find("div.mtg-card").each(function (index_card, element_card) {
+                console.log(element_card);
                 deck['cards'][type].push( JSON.parse(window.atob(jQuery(element_card).data("card"))) );
             });
         });
@@ -143,38 +127,41 @@ jQuery(document).ready(function() {
 
 });
 
-function show_popover() {
-    return "<a href='#' class='btn btn-danger'>Delete</a>";
-}
-
 function show_modal(type) {
     jQuery('#modalSearchCard').modal();
 }
 
 function add_card(card) {
-    if (jQuery(".card-type[data-active=1] .card-text img.mtg-card-thumbnail").length === 0) {
-        jQuery(".card-type[data-active=1] .card-text").html('');
+    if (jQuery(".card-type[data-active=1] .mtg-cards .card-text").is(":visible")) {
+        jQuery(".card-type[data-active=1] .mtg-cards .card-text").hide();
     }
-    jQuery(".card-type[data-active=1] .card-text").append('<img class="responsive mtg-card-thumbnail" data-card="' + window.btoa(JSON.stringify(card)) + '" src="' + card['image_url'] + '" />');
+    jQuery(".card-type[data-active=1] .mtg-cards").append(generate_card(card));
+}
+
+function create_deck_cards_events() {
+    jQuery(".card-type .mtg-cards > .mtg-card img").off("click").click(function(event) {
+        event.preventDefault();
+
+        let parent = jQuery(this).parents(".mtg-card");
+
+        if (jQuery(parent).find(".action").length > 0) {
+            jQuery(parent).find(".action").remove();
+        } else {
+            parent.append('<div class="action"><button class="btn btn-danger"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-trash-fill" viewBox="0 0 16 16"><path d="M2.5 1a1 1 0 0 0-1 1v1a1 1 0 0 0 1 1H3v9a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V4h.5a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H10a1 1 0 0 0-1-1H7a1 1 0 0 0-1 1H2.5zm3 4a.5.5 0 0 1 .5.5v7a.5.5 0 0 1-1 0v-7a.5.5 0 0 1 .5-.5zM8 5a.5.5 0 0 1 .5.5v7a.5.5 0 0 1-1 0v-7A.5.5 0 0 1 8 5zm3 .5v7a.5.5 0 0 1-1 0v-7a.5.5 0 0 1 1 0z"/></svg></button></div>');
+            jQuery(parent).find(".action > .btn-danger").click(function(event) {
+                event.preventDefault();
+
+                jQuery(parent).remove();
+            });
+        }
+    });
 }
 
 function generate_card(card) {
 
-    cost = '';
-
-    const regexp = /{([^}]+)}/g;
-    const costs = [...card['mana_cost'].matchAll(regexp)];
-    costs.forEach(function(c) {
-        cost += '<abbr class="card-symbol card-symbol-' + c[1].replace("/", "") + '">' + c[0] + '</abbr>'
-    });
-
-    html = '<div class="mtg-card card border-primary mb-3" data-card="' + window.btoa(JSON.stringify(card)) + '">';
-    html += '<div class="card-header"><span>' + card['name'] + '</span><span>' + cost + '</span></div>';
-  html += '<div class="card-body">';
-    // html += '<p class="card-text">' + card['text'] + '</p>';
-    html += '<p class="card-text"><img class="responsive mtg-card-thumbnail" src="' + card['image_url'] + '" /></p>';
-  html += '</div>';
-html += '</div>';
+    html = '<div class="mtg-card" data-card="' + window.btoa(JSON.stringify(card)) + '">';
+    html += '<img class="responsive mtg-card-thumbnail" src="' + card['image_url'] + '" />';
+    html += '</div>';
 
     return html;
 }

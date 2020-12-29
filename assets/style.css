@@ -8,18 +8,30 @@ main.container {
     justify-content: space-between;
 }
 
-.mtg-card > .card-header {
-	display: flex;
-	align-items: center;
-    justify-content: space-between;	
+.mtg-cards {
+    display: flex;
+    flex-wrap: wrap;
 }
 
-.card-type img.mtg-card-thumbnail {
-	max-width: 300px;
-	margin-right: 10px;
-	margin-bottom: 10px;
+.mtg-cards > .mtg-card {
+    margin-right: 10px;
+    margin-bottom: 10px;
+    max-width: 300px;
+    position: relative;
 }
 
+.mtg-card > .action {
+    position: absolute;
+    bottom: 0;
+    width: 100%;
+    text-align: center;
+    background-color: rgba(0, 0, 0, 0.6);
+    padding: 10px 0;
+}
+
+.mtg-card > .action > .btn {
+    line-height: 16px;
+}
 
 img.responsive {
 	max-width: 100%

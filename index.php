@@ -22,20 +22,41 @@ if ($deck != "") {
 	$types = array(
 		"commander" => array(
 			"label" => "Commander",
-			"type" => "creature"
+			"type" => "creature",
+			"is-legendary" => 1
 		),
 		"creatures" => array(
 			"label" => "Creatures",
 			"type" => "creature"
+		),
+		"sorceries" => array(
+			"label" => "Sorceries",
+			"type" => "sorcery"
+		),
+		"instants" => array(
+			"label" => "Instants",
+			"type" => "instant"
+		),
+		"enchantments" => array(
+			"label" => "Enchantments",
+			"type" => "enchantment"
+		),
+		"artifacts" => array(
+			"label" => "Artifacts",
+			"type" => "artifact"
+		),
+		"lands" => array(
+			"label" => "Lands",
+			"type" => "land"
 		)
 	);
 
 	echo '<div class="types my-5">';
 	foreach($types as $type_id => $type) {
 		?>
-		<div class="card-type card border-primary mb-5" data-type="<?php echo $type_id ?>">
+		<div class="card-type card border-primary mb-5" data-legendary="<?php echo (int)$type['is-legendary'] ?>" data-type="<?php echo $type_id ?>" data-card-type="<?php echo $type['type'] ?>">
 		  <div class="card-header">
-		  	<span><?php echo $type['label'] ?></span>
+		  	<span><?php echo $type['label'] ?><span class="cards-total"></span></span>
 		  	<?php if ($action == "edit") { ?>
 		  		<button class="btn-search-cards btn btn-primary my-2 my-sm-0" data-type="<?php echo json_encode($type) ?>">Search</button>
 		  	<?php } ?>

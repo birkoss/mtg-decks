@@ -1,11 +1,11 @@
 jQuery(document).ready(function() {
 
     /* Add existing deck cards in containers */
-    if (deck_data !== undefined) {
+    if (deck_data !== undefined && deck_data !== null) {
         jQuery(".card-type").each(function (index_type, element_type) {
 
             jQuery(".card-type").attr("data-active", 0);
-            if (deck_data['cards'][ jQuery(element_type).data("type") ] !== undefined && deck_data['cards'][ jQuery(element_type).data("type") ].length > 0) {
+            if (deck_data['cards'] !== undefined && deck_data['cards'][ jQuery(element_type).data("type") ] !== undefined && deck_data['cards'][ jQuery(element_type).data("type") ].length > 0) {
                 jQuery(element_type).attr("data-active", 1);
 
                 deck_data['cards'][ jQuery(element_type).data("type") ].forEach(function (card) {
@@ -26,8 +26,17 @@ jQuery(document).ready(function() {
 
         jQuery("#resultSearchCard").html("Searching...");
 
+        let query = 'lang:fr ' + jQuery('#inputSearchCard').val();
+
+        if (jQuery(".card-type[data-active=1]").data("card-type") != "") {
+            query = "type:" + jQuery(".card-type[data-active=1]").data("card-type") + " " + query;
+        }
+        if (jQuery(".card-type[data-active=1]").data("legendary") != "") {
+            query = "type:legendary " + query;
+        }
+
         jQuery.ajax(
-            'https://api.scryfall.com/cards/search?q=lang:fr ' + jQuery('#inputSearchCard').val()
+            'https://api.scryfall.com/cards/search?q=' + query
         ).done(function (res) {
             if (res.data) {
                 jQuery("#resultSearchCard").html("");
@@ -35,7 +44,6 @@ jQuery(document).ready(function() {
                     card = {
                         name: item['printed_name'],
                         mana_cost: item['mana_cost'],
-                        /* text: item['printed_text'], */
                         image_url: "https://c1.scryfall.com/file/scryfall-cards/border_crop/front/" + item['id'].substring(0, 1) + "/" + item['id'].substring(1, 2) + "/" + item['id'] + ".jpg?1562404626"
                     }
                     jQuery("#resultSearchCard").append( generate_card(card) );
@@ -44,11 +52,22 @@ jQuery(document).ready(function() {
                 jQuery(".modal-body img.mtg-card-thumbnail").click(function(event) {
                     add_card(JSON.parse(window.atob(jQuery(this).parents(".mtg-card").data("card"))));
 
+                    /* Sort the cards by name */
+                    var mtgCards = jQuery('.card-type[data-active=1] .mtg-cards');
+                    mtgCards.find('.mtg-card').sort(function(a, b) {
+                        card_a = JSON.parse(window.atob(jQuery(a).data("card")));
+                        card_b = JSON.parse(window.atob(jQuery(b).data("card")));
+                        return card_a['name'].toUpperCase().localeCompare(card_b['name'].toUpperCase());
+                    })
+                    .appendTo(mtgCards);
+
                     create_deck_cards_events();
 
                     jQuery('#modalSearchCard').modal("hide"); 
                 });
             }
+        }).fail(function(res) {
+            jQuery("#resultSearchCard").html("Nothing matched");
         });
     });
 
@@ -66,6 +85,8 @@ jQuery(document).ready(function() {
         // Set the clicked Card Type as active
         jQuery(this).parents(".card-type").attr("data-active", 1);
 
+        jQuery("#resultSearchCard").html("");
+        jQuery("#inputSearchCard").val("");
         jQuery('#modalSearchCard').modal("show");
     });
 
@@ -84,7 +105,6 @@ jQuery(document).ready(function() {
             deck['cards'][ type ] = [];
 
             jQuery(element_type).find("div.mtg-card").each(function (index_card, element_card) {
-                console.log(element_card);
                 deck['cards'][type].push( JSON.parse(window.atob(jQuery(element_card).data("card"))) );
             });
         });
@@ -94,37 +114,13 @@ jQuery(document).ready(function() {
             "method": "post",
             "data": {
                 "deck": deck
-            },
+            }
         }).done(function (res) {
-                if (res.data) {
-                    jQuery("#resultSearchCard").html("");
-                    res.data.forEach(function(item) {
-                        card = {
-                            name: item['printed_name'],
-                            mana_cost: item['mana_cost'],
-                            /* text: item['printed_text'], */
-                            image_url: "https://c1.scryfall.com/file/scryfall-cards/border_crop/front/" + item['id'].substring(0, 1) + "/" + item['id'].substring(1, 2) + "/" + item['id'] + ".jpg?1562404626"
-                        }
-                        jQuery("#resultSearchCard").append( generate_card(card) );
-                    });
-
-                    jQuery("img.mtg-card-thumbnail").click(function(event) {
-                        add_card(JSON.parse(window.atob(jQuery(this).parents(".mtg-card").data("card"))));
-
-                        jQuery('img').popover("dispose");
-                        jQuery('img').popover({
-                            html: true,
-                            content: show_popover,
-                            placement: "bottom"
-                        });
-
-                        jQuery('#modalSearchCard').modal("hide"); 
-                    });
-                }
-            });
-
+            console.log("SAVED");
+        }).fail(function (res) {
+            console.log("NOT SAVED"); 
+        });
     });
-
 });
 
 function show_modal(type) {
@@ -136,6 +132,8 @@ function add_card(card) {
         jQuery(".card-type[data-active=1] .mtg-cards .card-text").hide();
     }
     jQuery(".card-type[data-active=1] .mtg-cards").append(generate_card(card));
+
+    jQuery(".card-type[data-active=1] .cards-total").html(" x " + jQuery(".card-type[data-active=1] .mtg-card").length);
 }
 
 function create_deck_cards_events() {
@@ -143,6 +141,7 @@ function create_deck_cards_events() {
         event.preventDefault();
 
         let parent = jQuery(this).parents(".mtg-card");
+        let container = jQuery(parent).parents(".mtg-cards");
 
         if (jQuery(parent).find(".action").length > 0) {
             jQuery(parent).find(".action").remove();
@@ -152,6 +151,11 @@ function create_deck_cards_events() {
                 event.preventDefault();
 
                 jQuery(parent).remove();
+
+                /* Show the default text if no card are present */
+                if (jQuery(container).find(".mtg-card").length === 0) {
+                    jQuery(container).find(".card-text").show();
+                }
             });
         }
     });
@@ -159,6 +163,8 @@ function create_deck_cards_events() {
 
 function generate_card(card) {
 
+
+    console.log("generate_card", card);
     html = '<div class="mtg-card" data-card="' + window.btoa(JSON.stringify(card)) + '">';
     html += '<img class="responsive mtg-card-thumbnail" src="' + card['image_url'] + '" />';
     html += '</div>';

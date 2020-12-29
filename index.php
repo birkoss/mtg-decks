@@ -15,6 +15,16 @@ include("includes/header.inc.php");
 if ($deck != "") {
 	$deck_data = json_decode(file_get_contents("decks/".$deck.".json"), true);
 
+	/*
+	foreach($deck_data['cards'] as $type => $cards) { 
+		foreach ($cards as $index => $card) {
+			if (!isset($card['image_id']) && preg_match("|/([0-9a-z-]+).jpg|im", $card['image_url'], $matches)) {
+				$deck_data['cards'][$type][$index]['image_id'] = $matches[1];
+			}
+		}
+	}
+	*/
+
 	?><script>
 		let deck_data = <?php echo json_encode($deck_data); ?>;
 	</script><?php

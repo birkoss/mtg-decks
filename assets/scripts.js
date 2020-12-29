@@ -44,20 +44,20 @@ jQuery(document).ready(function() {
                     card = {
                         name: item['printed_name'],
                         mana_cost: item['mana_cost'],
-                        image_url: "https://c1.scryfall.com/file/scryfall-cards/border_crop/front/" + item['id'].substring(0, 1) + "/" + item['id'].substring(1, 2) + "/" + item['id'] + ".jpg?1562404626"
+                        image_url: "https://c1.scryfall.com/file/scryfall-cards/border_crop/front/" + item['id'].substring(0, 1) + "/" + item['id'].substring(1, 2) + "/" + item['id'] + ".jpg?1562404626",
+                        image_id: item['id']
                     }
                     jQuery("#resultSearchCard").append( generate_card(card) );
                 });
 
                 jQuery(".modal-body img.mtg-card-thumbnail").click(function(event) {
-                    add_card(JSON.parse(window.atob(jQuery(this).parents(".mtg-card").data("card"))));
+                    let card_info = get_card_info(jQuery(this).parents(".mtg-card"));
+                    add_card(card_info);
 
-                    /* Sort the cards by name */
+                    /* Sort the cards by name for the active Card Type */
                     var mtgCards = jQuery('.card-type[data-active=1] .mtg-cards');
-                    mtgCards.find('.mtg-card').sort(function(a, b) {
-                        card_a = JSON.parse(window.atob(jQuery(a).data("card")));
-                        card_b = JSON.parse(window.atob(jQuery(b).data("card")));
-                        return card_a['name'].toUpperCase().localeCompare(card_b['name'].toUpperCase());
+                    mtgCards.find('.mtg-card').sort(function(card_a, card_b) {
+                        return card_a.dataset.name.toUpperCase().localeCompare(card_b.dataset.name.toUpperCase());
                     })
                     .appendTo(mtgCards);
 
@@ -105,7 +105,7 @@ jQuery(document).ready(function() {
             deck['cards'][ type ] = [];
 
             jQuery(element_type).find("div.mtg-card").each(function (index_card, element_card) {
-                deck['cards'][type].push( JSON.parse(window.atob(jQuery(element_card).data("card"))) );
+                deck['cards'][type].push( get_card_info(element_card) );
             });
         });
 
@@ -133,7 +133,13 @@ function add_card(card) {
     }
     jQuery(".card-type[data-active=1] .mtg-cards").append(generate_card(card));
 
-    jQuery(".card-type[data-active=1] .cards-total").html(" x " + jQuery(".card-type[data-active=1] .mtg-card").length);
+    update_cards_total();
+}
+
+function update_cards_total() {
+    jQuery(".card-type").each(function (type_index, type_element) {
+        jQuery(type_element).find(".cards-total").html(" x " + jQuery(type_element).find(".mtg-card").length);
+    });
 }
 
 function create_deck_cards_events() {
@@ -151,6 +157,7 @@ function create_deck_cards_events() {
                 event.preventDefault();
 
                 jQuery(parent).remove();
+                update_cards_total();
 
                 /* Show the default text if no card are present */
                 if (jQuery(container).find(".mtg-card").length === 0) {
@@ -161,13 +168,35 @@ function create_deck_cards_events() {
     });
 }
 
-function generate_card(card) {
+function get_card_info(element) {
+    if (element instanceof jQuery) {
+        element = element[0];
+    }
 
+    let card_info = {
+        name: element.dataset.name,
+        mana_cost: element.dataset.manaCost,
+        image_url: element.dataset.imageUrl,
+        image_id: element.dataset.imageId,
+    }
 
-    console.log("generate_card", card);
-    html = '<div class="mtg-card" data-card="' + window.btoa(JSON.stringify(card)) + '">';
-    html += '<img class="responsive mtg-card-thumbnail" src="' + card['image_url'] + '" />';
-    html += '</div>';
+    return card_info;
+}
 
-    return html;
+function generate_card(card_info) {
+
+    let card = document.createElement("div");
+    card.className = "mtg-card";
+    card.dataset.name = card_info['name'];
+    card.dataset.manaCost = card_info['mana_cost'];
+    card.dataset.imageUrl = card_info['image_url'];
+    card.dataset.imageId = card_info['image_id'];
+
+    let img = document.createElement("img");
+    img.className = "responsive mtg-card-thumbnail";
+    img.src = card_info['image_url'];
+
+    card.appendChild(img);
+
+    return card;
 }

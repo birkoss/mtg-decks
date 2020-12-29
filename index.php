@@ -4,6 +4,20 @@ include("includes/functions.inc.php");
 $deck = (isset($_GET['deck']) ? $_GET['deck'] : "");
 $action = (isset($_GET['action']) ? $_GET['action'] : "");
 
+if ($action == "image" && isset($_GET['image'])) {
+	$image_id = $_GET['image'];
+
+	$filename = "assets/cards/".$image_id.".jpg";
+	if (!file_exists($filename)) {
+		$content = file_get_contents("https://c1.scryfall.com/file/scryfall-cards/border_crop/front/" . substr($image_id, 0, 1) . "/" . substr($image_id, 1, 1) . "/" . $image_id . ".jpg?1562404626");
+		file_put_contents($filename, $content);
+	}
+
+	header('Content-type: image/jpeg');
+	echo file_get_contents($filename);
+	die();
+}
+
 if ($deck != "" && $action == "edit" && isset($_POST['deck'])) {
 	file_put_contents("decks/".$deck.".json", json_encode($_POST['deck']));
 	echo "OK";
@@ -14,16 +28,6 @@ include("includes/header.inc.php");
 
 if ($deck != "") {
 	$deck_data = json_decode(file_get_contents("decks/".$deck.".json"), true);
-
-	/*
-	foreach($deck_data['cards'] as $type => $cards) { 
-		foreach ($cards as $index => $card) {
-			if (!isset($card['image_id']) && preg_match("|/([0-9a-z-]+).jpg|im", $card['image_url'], $matches)) {
-				$deck_data['cards'][$type][$index]['image_id'] = $matches[1];
-			}
-		}
-	}
-	*/
 
 	?><script>
 		let deck_data = <?php echo json_encode($deck_data); ?>;

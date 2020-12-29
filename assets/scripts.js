@@ -17,7 +17,9 @@ jQuery(document).ready(function() {
         jQuery(".card-type").attr("data-active", 0);
 
         /* Enable events */
-        create_deck_cards_events();
+        if (jQuery("body.action-edit").length !== 0) {
+            create_deck_cards_events();
+        }
     }
 
     /* Search the API when the modal form is submitted */
@@ -214,7 +216,6 @@ function get_card_info(element) {
     let card_info = {
         name: element.dataset.name,
         mana_cost: element.dataset.manaCost,
-        image_url: element.dataset.imageUrl,
         image_id: element.dataset.imageId,
         qty: element.dataset.qty,
     }
@@ -228,7 +229,6 @@ function generate_card(card_info) {
     card.className = "mtg-card";
     card.dataset.name = card_info['name'];
     card.dataset.manaCost = card_info['mana_cost'];
-    card.dataset.imageUrl = card_info['image_url'];
     card.dataset.imageId = card_info['image_id'];
     if (card_info['qty'] !== undefined && !isNaN(card_info['qty'])) {
         card.dataset.qty = card_info['qty'];
@@ -238,7 +238,11 @@ function generate_card(card_info) {
 
     let img = document.createElement("img");
     img.className = "responsive mtg-card-thumbnail";
-    img.src = card_info['image_url'];
+    if (card_info['image_url']) {
+        img.src = card_info['image_url'];
+    } else {
+        img.src = "https://mtg.birkoss.com/image/" + card_info['image_id'] + ".jpg?v=4";
+    }
 
     card.appendChild(img);
 

@@ -12,7 +12,7 @@
     <!-- Custom styles for this template -->
     <link href="/assets/style.css?v=<?php echo rand(0, 10000000000); ?>" rel="stylesheet">
   </head>
-  <body class="d-flex flex-column h-100">
+  <body class="d-flex flex-column h-100 action-<?php echo $action ?>">
     
 <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
   <a class="navbar-brand" href="/">MTG</a>

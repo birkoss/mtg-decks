@@ -27,6 +27,14 @@ main.container {
     text-align: center;
     background-color: rgba(0, 0, 0, 0.6);
     padding: 10px 0;
+
+    justify-content: center;
+    display: flex;
+}
+
+.mtg-card > .action input {
+    max-width: 50px;
+    text-align: center;
 }
 
 .mtg-card > .action > .btn {

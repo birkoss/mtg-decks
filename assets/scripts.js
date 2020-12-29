@@ -138,7 +138,11 @@ function add_card(card) {
 
 function update_cards_total() {
     jQuery(".card-type").each(function (type_index, type_element) {
-        jQuery(type_element).find(".cards-total").html(" x " + jQuery(type_element).find(".mtg-card").length);
+        let total = 0;
+        jQuery(type_element).find(".mtg-card").each(function (card_index, card_element) {
+            total += parseInt(jQuery(card_element).attr("data-qty"));
+        });
+        jQuery(type_element).find(".cards-total").html(" x " + total);
     });
 }
 
@@ -152,8 +156,42 @@ function create_deck_cards_events() {
         if (jQuery(parent).find(".action").length > 0) {
             jQuery(parent).find(".action").remove();
         } else {
-            parent.append('<div class="action"><button class="btn btn-danger"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-trash-fill" viewBox="0 0 16 16"><path d="M2.5 1a1 1 0 0 0-1 1v1a1 1 0 0 0 1 1H3v9a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V4h.5a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H10a1 1 0 0 0-1-1H7a1 1 0 0 0-1 1H2.5zm3 4a.5.5 0 0 1 .5.5v7a.5.5 0 0 1-1 0v-7a.5.5 0 0 1 .5-.5zM8 5a.5.5 0 0 1 .5.5v7a.5.5 0 0 1-1 0v-7A.5.5 0 0 1 8 5zm3 .5v7a.5.5 0 0 1-1 0v-7a.5.5 0 0 1 1 0z"/></svg></button></div>');
-            jQuery(parent).find(".action > .btn-danger").click(function(event) {
+            let action = document.createElement("div");
+            action.className = "action";
+
+            let button = document.createElement("button");
+            button.className = "btn btn-danger";
+            button.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-trash-fill" viewBox="0 0 16 16"><path d="M2.5 1a1 1 0 0 0-1 1v1a1 1 0 0 0 1 1H3v9a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V4h.5a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H10a1 1 0 0 0-1-1H7a1 1 0 0 0-1 1H2.5zm3 4a.5.5 0 0 1 .5.5v7a.5.5 0 0 1-1 0v-7a.5.5 0 0 1 .5-.5zM8 5a.5.5 0 0 1 .5.5v7a.5.5 0 0 1-1 0v-7A.5.5 0 0 1 8 5zm3 .5v7a.5.5 0 0 1-1 0v-7a.5.5 0 0 1 1 0z"/></svg>';
+
+            let form = document.createElement("form");
+
+            let input = document.createElement("input");
+            input.className = "form-control";
+            input.value = jQuery(parent).attr("data-qty");
+
+            form.appendChild(input);
+
+            action.appendChild(form);
+
+            action.appendChild(button);
+
+            parent.append(action);
+
+            jQuery(form).submit(function(event) {
+                event.preventDefault();
+                let qty = jQuery(this).find("input").val();
+
+                if (isNaN(qty) || qty === "") {
+                    jQuery(this).find("input").val( jQuery(this).parents(".mtg-card").data("qty") );
+                } else {
+                    jQuery(this).parents(".mtg-card").attr("data-qty", qty);
+
+                    update_cards_total();
+                }
+            });
+
+            //parent.append('<div class="action"><button class="btn btn-danger"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-trash-fill" viewBox="0 0 16 16"><path d="M2.5 1a1 1 0 0 0-1 1v1a1 1 0 0 0 1 1H3v9a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V4h.5a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H10a1 1 0 0 0-1-1H7a1 1 0 0 0-1 1H2.5zm3 4a.5.5 0 0 1 .5.5v7a.5.5 0 0 1-1 0v-7a.5.5 0 0 1 .5-.5zM8 5a.5.5 0 0 1 .5.5v7a.5.5 0 0 1-1 0v-7A.5.5 0 0 1 8 5zm3 .5v7a.5.5 0 0 1-1 0v-7a.5.5 0 0 1 1 0z"/></svg></button></div>');
+            jQuery(button).click(function(event) {
                 event.preventDefault();
 
                 jQuery(parent).remove();
@@ -178,6 +216,7 @@ function get_card_info(element) {
         mana_cost: element.dataset.manaCost,
         image_url: element.dataset.imageUrl,
         image_id: element.dataset.imageId,
+        qty: element.dataset.qty,
     }
 
     return card_info;
@@ -191,6 +230,11 @@ function generate_card(card_info) {
     card.dataset.manaCost = card_info['mana_cost'];
     card.dataset.imageUrl = card_info['image_url'];
     card.dataset.imageId = card_info['image_id'];
+    if (card_info['qty'] !== undefined && !isNaN(card_info['qty'])) {
+        card.dataset.qty = card_info['qty'];
+    } else {
+        card.dataset.qty = 1;
+    }
 
     let img = document.createElement("img");
     img.className = "responsive mtg-card-thumbnail";

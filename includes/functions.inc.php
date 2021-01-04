@@ -75,7 +75,7 @@ function generate_card($card) {
 
 	$html = "";
 	$html .= '<div class="mtg-card" data-id="'.$card['id'].'" data-name="'.$card['name'].'" data-qty="'.$qty.'">';
-	$html .= '<img loading="lazy" class="responsive" src="/assets/cards/' . $card['id'] . '.jpg?v=6.1" />';
+	$html .= '<img class="lazy responsive" width="480" height="640" data-src="/assets/cards/' . $card['id'] . '.jpg" />';
 	$html .= '</div>';
 	return $html;
 }

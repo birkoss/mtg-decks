@@ -2,13 +2,14 @@
 
 // ini_set('display_errors', 1); ini_set('display_startup_errors', 1); error_reporting(E_ALL);
 
-// @TODO: Add lazy load
 // @TODO: Allow language switcher in the search modal
-// @TODO: Allow to add status regarding if we want to change the card (wrong language, etc...)
-// @TODO: Add the qty in a badge (always visible)
-// @TODO: Force the color to be depending on the Commander Identity
+// @TODO: Allow to add status tracking regarding if we want to change the card (wrong language, is foil, condition, etc...)
+// @TODO: Add the qty in a badge on the card (always visible, and updated)
+// @TODO: Force the color to be depending on the Commander Identity on the search modal
 // @TODO: Allow to limit the number of card in a type (commander: only 1)
-// @TODO: Prevent adding a card with it already exists in the current TYPE
+// @TODO: Prevent adding a card with it already exists in the current TYPE (prevent duplicate, and in the total deck)
+// @TODO: Prevent search without keyword (min length)
+// @TODO: Add navbar for view mode (picture mode, compact mode, stats, etc.)
 
 include("includes/var.inc.php");
 include("includes/functions.inc.php");
@@ -238,7 +239,7 @@ if ($deck != "") {
 		  <div class="card-header">
 		  	<span><?php echo $type['label'] ?><span class="cards-total"></span></span>
 		  	<?php if ($action == "edit") { ?>
-		  		<button class="btn-search-cards btn btn-primary my-2 my-sm-0" data-type="<?php echo json_encode($type) ?>">Search</button>
+		  		<button class="btn-search-cards btn btn-primary my-2 my-sm-0" data-type="<?php echo json_encode($type) ?>">Ajouter une carte</button>
 		  	<?php } ?>
 		  </div>
 		  <div class="card-body mtg-cards">
@@ -262,7 +263,7 @@ if ($deck != "") {
 			<div class="modal-dialog" role="document">
 				<div class="modal-content">
 				<div class="modal-header">
-					<h5 class="modal-title">Cards Search</h5>
+					<h5 class="modal-title">Recherche</h5>
 					<button type="button" class="close" data-dismiss="modal" aria-label="Close">
 					<span aria-hidden="true">&times;</span>
 					</button>
@@ -270,14 +271,14 @@ if ($deck != "") {
 				<div class="modal-body">
 					<form id="formSearchCard">
 					<div class="form-group">
-						<label for="inputSearchCard">Card Name</label>
-						<input type="text" class="form-control" style="max-width: 300px;" id="inputSearchCard" placeholder="Card Name" autocomplete="off" />
+						<label for="inputSearchCard">Nom de la carte</label>
+						<input type="text" class="form-control" style="max-width: 300px;" id="inputSearchCard" placeholder="Nom de la carte..." autocomplete="off" />
 						</div>
 					</form>
 					<div id="resultSearchCard"></div>
 				</div>
 				<div class="modal-footer">
-					<button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+					<button type="button" class="btn btn-secondary" data-dismiss="modal">Fermer</button>
 				</div>
 				</div>
 			</div>

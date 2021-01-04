@@ -3,7 +3,6 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="description" content="">
     <title>MTG</title>
 
     <!-- Bootstrap core CSS -->
@@ -12,7 +11,7 @@
     <!-- Custom styles for this template -->
     <link href="/assets/style.css?v=<?php echo rand(0, 10000000000); ?>" rel="stylesheet">
   </head>
-  <body class="d-flex flex-column h-100 action-<?php echo $action ?>">
+  <body class="d-flex flex-column action-<?php echo $action ?>">
     
 <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
   <a class="navbar-brand" href="/">MTG</a>
@@ -25,14 +24,13 @@
       <?php
         $decks = get_decks();
         foreach ($decks as $d) {
-          $deck_filename = substr($d, 0, -5);
           $is_selected = false;
-          if (isset($_GET['deck']) && $_GET['deck'] == $deck_filename) {
+          if (isset($_GET['deck']) && $_GET['deck'] == $d['id']) {
             $is_selected = true;
           }
           ?>
           <li class="nav-item">
-            <a class="nav-link<?php echo ($is_selected ? " active" : "") ?>" href="/deck/<?php echo $deck_filename ?>/"><?php echo ucfirst($deck_filename) ?></a>
+            <a class="nav-link<?php echo ($is_selected ? " active" : "") ?>" href="/deck/<?php echo $d['id'] ?>/"><?php echo $d['name'] ?></a>
           </li>
           <?php
         }

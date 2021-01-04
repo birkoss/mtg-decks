@@ -1,26 +1,12 @@
+var search_cards = {};
+
 jQuery(document).ready(function() {
-
-    /* Add existing deck cards in containers */
-    if (deck_data !== undefined && deck_data !== null) {
-        jQuery(".card-type").each(function (index_type, element_type) {
-
-            jQuery(".card-type").attr("data-active", 0);
-            if (deck_data['cards'] !== undefined && deck_data['cards'][ jQuery(element_type).data("type") ] !== undefined && deck_data['cards'][ jQuery(element_type).data("type") ].length > 0) {
-                jQuery(element_type).attr("data-active", 1);
-
-                deck_data['cards'][ jQuery(element_type).data("type") ].forEach(function (card) {
-                    add_card(card);
-                });
-            }
-        });
-
-        jQuery(".card-type").attr("data-active", 0);
-
-        /* Enable events */
-        if (jQuery("body.action-edit").length !== 0) {
-            create_deck_cards_events();
-        }
+    /* Enable events */
+    if (jQuery("body.action-edit").length !== 0) {
+        create_deck_cards_events();
     }
+
+    update_cards_total();
 
     /* Search the API when the modal form is submitted */
     jQuery('#formSearchCard').submit(function(event) {
@@ -42,30 +28,48 @@ jQuery(document).ready(function() {
         ).done(function (res) {
             if (res.data) {
                 jQuery("#resultSearchCard").html("");
+                
+                search_cards = {};
                 res.data.forEach(function(item) {
+                    console.log(item);
+                    search_cards[ item['id'] ] = item;
                     card = {
                         name: item['printed_name'],
                         mana_cost: item['mana_cost'],
                         image_url: "https://c1.scryfall.com/file/scryfall-cards/border_crop/front/" + item['id'].substring(0, 1) + "/" + item['id'].substring(1, 2) + "/" + item['id'] + ".jpg?1562404626",
-                        image_id: item['id']
+                        image_id: item['id'],
+                        id: item['id']
                     }
                     jQuery("#resultSearchCard").append( generate_card(card) );
                 });
 
                 jQuery(".modal-body img.mtg-card-thumbnail").click(function(event) {
-                    let card_info = get_card_info(jQuery(this).parents(".mtg-card"));
-                    add_card(card_info);
+                    let card = jQuery(this).parents(".mtg-card");
+                    let card_info = get_card_info(card);
 
-                    /* Sort the cards by name for the active Card Type */
-                    var mtgCards = jQuery('.card-type[data-active=1] .mtg-cards');
-                    mtgCards.find('.mtg-card').sort(function(card_a, card_b) {
-                        return card_a.dataset.name.toUpperCase().localeCompare(card_b.dataset.name.toUpperCase());
-                    })
-                    .appendTo(mtgCards);
+                    jQuery.ajax({
+                        "method": "post",
+                        "data": {
+                            "action": "import",
+                            "id": card_info['id'],
+                            "card": JSON.stringify(search_cards[ card_info['id'] ])
+                        }
+                    }).done(function (html) {
+                        add_card(html);
 
-                    create_deck_cards_events();
+                        /* Sort the cards by name for the active Card Type */
+                        var mtgCards = jQuery('.card-type[data-active=1] .mtg-cards');
+                        mtgCards.find('.mtg-card').sort(function(card_a, card_b) {
+                            return card_a.dataset.name.toUpperCase().localeCompare(card_b.dataset.name.toUpperCase());
+                        })
+                        .appendTo(mtgCards);
 
-                    jQuery('#modalSearchCard').modal("hide"); 
+                        create_deck_cards_events();
+
+                        jQuery('#modalSearchCard').modal("hide"); 
+                    }).fail(function (res) {
+                        console.log("NOT IMPORTED"); 
+                    });
                 });
             }
         }).fail(function(res) {
@@ -96,18 +100,18 @@ jQuery(document).ready(function() {
     jQuery(".btn-save").click(function(event) {
         event.preventDefault();
 
-        let deck = {
-            "type": "commander",
-            "cards": {}
-        };
+        let cards = {};
 
         jQuery(".card-type").each(function (index_type, element_type) {
             let type = jQuery(element_type).data("type");
 
-            deck['cards'][ type ] = [];
+            cards[ type ] = [];
 
             jQuery(element_type).find("div.mtg-card").each(function (index_card, element_card) {
-                deck['cards'][type].push( get_card_info(element_card) );
+                cards[type].push({
+                    "card_id": jQuery(element_card).data("id"),
+                    "qty": jQuery(element_card).attr("data-qty")
+                });
             });
         });
 
@@ -115,7 +119,8 @@ jQuery(document).ready(function() {
         jQuery.ajax({
             "method": "post",
             "data": {
-                "deck": deck
+                "action": "save",
+                "cards": cards
             }
         }).done(function (res) {
             console.log("SAVED");
@@ -129,11 +134,11 @@ function show_modal(type) {
     jQuery('#modalSearchCard').modal();
 }
 
-function add_card(card) {
+function add_card(card_html) {
     if (jQuery(".card-type[data-active=1] .mtg-cards .card-text").is(":visible")) {
         jQuery(".card-type[data-active=1] .mtg-cards .card-text").hide();
     }
-    jQuery(".card-type[data-active=1] .mtg-cards").append(generate_card(card));
+    jQuery(".card-type[data-active=1] .mtg-cards").append(card_html);
 
     update_cards_total();
 }
@@ -218,6 +223,7 @@ function get_card_info(element) {
         mana_cost: element.dataset.manaCost,
         image_id: element.dataset.imageId,
         qty: element.dataset.qty,
+        id: element.dataset.id,
     }
 
     return card_info;
@@ -230,6 +236,9 @@ function generate_card(card_info) {
     card.dataset.name = card_info['name'];
     card.dataset.manaCost = card_info['mana_cost'];
     card.dataset.imageId = card_info['image_id'];
+    card.dataset.card = card_info['card'];
+    card.dataset.id = card_info['id'];
+
     if (card_info['qty'] !== undefined && !isNaN(card_info['qty'])) {
         card.dataset.qty = card_info['qty'];
     } else {

@@ -1,3 +1,8 @@
+<IfModule mod_security.c>
+  SecFilterEngine Off
+  SecFilterScanPOST Off
+</IfModule>
+
 RewriteEngine On
 
 # Force HTTPS
@@ -5,8 +10,12 @@ RewriteCond %{HTTPS} off
 RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
 
 # Decks
-RewriteRule ^deck/([a-z]+)/$ index.php?deck=$1&action=show [L]
-RewriteRule ^deck/([a-z]+)/edit/$ index.php?deck=$1&action=edit [L]
+RewriteRule ^deck/([0-9a-z-]+)/$ index.php?deck=$1&action=show [L]
+RewriteRule ^deck/([0-9a-z-]+)/edit/$ index.php?deck=$1&action=edit [L]
 
 # Images
 RewriteRule ^image/([0-9a-z-]+).jpg$ index.php?image=$1&action=image [L]
+
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^assets/cards/([0-9a-z-]+).jpg$ index.php?image=$1&action=image [L]

@@ -1,4 +1,12 @@
 <?php
+
+// ini_set('display_errors', 1); ini_set('display_startup_errors', 1); error_reporting(E_ALL);
+// @TODO: Modal (X and close not working)
+// @TODO: Save should show progress and status
+// @TODO: deck_cards_history (and delete it also on deleting the card?)
+// @TODO: Fix php errors and warning
+
+include("includes/var.inc.php");
 include("includes/functions.inc.php");
 
 $deck = (isset($_GET['deck']) ? $_GET['deck'] : "");
@@ -18,26 +26,146 @@ if ($action == "image" && isset($_GET['image'])) {
 	die();
 }
 
-if ($deck != "" && $action == "edit" && isset($_POST['deck'])) {
-	file_put_contents("decks/".$deck.".json", json_encode($_POST['deck']));
-	echo "OK";
-	die("");
+if ($deck != "" ) {
+	if ($_POST['action'] == "import") {
+		$mysqli = new mysqli("127.0.0.1", $DB_USERNAME, $DB_PASSWORD, $DB_NAME);
+
+		$stmt = $mysqli->prepare("SELECT * FROM cards WHERE id=?;");
+		$stmt->bind_param("s", $_POST['id']);
+
+		$stmt->execute();
+
+		$card_data = json_decode($_POST['card'], true);
+
+		$result = $stmt->get_result();
+		if ($result->num_rows) {
+			$card = $result->fetch_assoc();
+		} else {
+			$card = array(
+				"id" => $_POST['id'],
+				"name" => $card_data['printed_name'],
+				"name_en" => $card_data['name'],
+				"date_added" => date("Y-m-d H:i:s"),
+				"date_updated" => date("Y-m-d H:i:s"),
+				"type" => "",
+				"data" => json_encode($card_data)
+			);
+
+			try {
+				$insert = $mysqli->prepare("INSERT INTO cards (id, name, name_en, date_added, date_updated, type, data) VALUES (?, ?, ?, ?, ?, ?, ?);");
+				$insert->bind_param("sssssss", $card['id'], $card['name'], $card['name_en'], $card['date_added'], $card['date_updated'], $card['type'], $card['data']);
+				$result = $insert->execute();
+				
+			} catch (Exception $e) {
+				print_r($e);
+			}
+			$insert->close();
+		}
+
+		$card['qty'] = 1;
+		$html = generate_card($card);
+		
+		$stmt->close();
+		$mysqli->close();
+
+		die($html);
+	} else if ($_POST['action'] == "save") {
+		$mysqli = new mysqli("127.0.0.1", $DB_USERNAME, $DB_PASSWORD, $DB_NAME);
+
+		$cards = $_POST['cards'];
+
+		$current_cards = get_cards($deck);
+
+		$stats = array(
+			"updated" => 0,
+			"added" => 0,
+			"deleted" => 0,
+			"total" => 0
+		);
+
+		foreach ($cards as $type_id => $type_cards) {
+			foreach ($type_cards as $card) {
+				$stats['total']++;
+
+				$existing = false;
+				$need_update = false;
+				foreach ($current_cards[$type_id] as $current_index => $current_card) {
+					if ($current_card['card_id'] == $card['id']) {
+						$existing = true;
+
+						if ($current_card['qty'] != $card['qty']) {
+							$need_update = true;
+						}
+
+						// Remove it from the existing index (to be able to delete the remaining)
+						$current_cards[$type_id][$current_index] = null;
+						break;
+					}
+				}
+
+				if ($existing) {
+					if ($need_update) {
+						$update = $mysqli->prepare("UPDATE deck_cards set qty=?, date_updated=? where deck_id=? AND card_id=? AND type=?;");
+						$update->bind_param("sssss", $card['qty'], date("Y-m-d H:i:s"), $deck, $card['card_id'], $type_id);
+						$updated = $update->execute();
+						$update->close();
+		
+						if ($updated) {
+							$stats['updated']++;
+						}
+					}
+				} else {
+					$insert = $mysqli->prepare("INSERT INTO deck_cards (deck_id, card_id, type, qty, date_added, date_updated) VALUES (?, ?, ?, ?, ?, ?);");
+					$insert->bind_param("ssssss", $deck, $card['card_id'], $type_id, $card['qty'], date("Y-m-d H:i:s"), date("Y-m-d H:i:s"));
+					$added = $insert->execute();
+					$insert->close();
+	
+					if ($added) {
+						$stats['added']++;
+					}
+				}
+			}
+		}
+
+		foreach ($current_cards as $type_id => $type_cards) {
+			foreach ($type_cards as $card) {
+				$delete = $mysqli->prepare("DELETE FROM deck_cards WHERE deck_id=? AND card_id=? AND type=?;");
+				$delete->bind_param("sss", $deck, $card['id'], $type_id);
+				$deleted = $delete->execute();
+				$delete->close();
+
+				if ($deleted) {
+					$stats['deleted']++;
+				}
+			}
+		}
+
+		$mysqli->close();
+
+		print_r($stats);
+		die("OK");
+	}
+	
+	/*
+	if ($action == "edit" && isset($_POST['deck'])) {
+		file_put_contents("decks/".$deck.".json", json_encode($_POST['deck']));
+		echo "OK";
+		die("");
+	}
+	*/
 }
 
 include("includes/header.inc.php");
 
 if ($deck != "") {
-	$deck_data = json_decode(file_get_contents("decks/".$deck.".json"), true);
-
-	?><script>
-		let deck_data = <?php echo json_encode($deck_data); ?>;
-	</script><?php
+	$cards = get_cards($deck);
 
 	$types = array(
 		"commander" => array(
 			"label" => "Commander",
 			"type" => "creature",
 			"is-legendary" => 1
+			/* @TODO: limit => 1 */
 		),
 		"creatures" => array(
 			"label" => "Creatures",
@@ -62,6 +190,9 @@ if ($deck != "") {
 		"lands" => array(
 			"label" => "Lands",
 			"type" => "land"
+		),
+		"wishlist" => array(
+			"label" => "Wishlist"
 		)
 	);
 
@@ -76,7 +207,12 @@ if ($deck != "") {
 		  	<?php } ?>
 		  </div>
 		  <div class="card-body mtg-cards">
-		    <p class="card-text">No cards for the moment.</p>
+		    <p class="card-text"<?php echo (count($cards[$type_id]) > 0 ? " style='display: none'" : "") ?>>No cards for the moment.</p>
+			<?php 
+			foreach ($cards[$type_id] as $card) {
+				echo generate_card($card);
+			}
+			?>
 		  </div>
 		</div>
 		<?php

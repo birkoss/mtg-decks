@@ -20,6 +20,12 @@ main.container {
     position: relative;
 }
 
+@media screen and (max-width: 500px) {
+    .mtg-cards > .mtg-card {
+        max-width: calc(50% - 10px);
+    }
+}
+
 .mtg-card > .action {
     position: absolute;
     bottom: 0;

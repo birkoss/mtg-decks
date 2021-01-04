@@ -2,7 +2,6 @@
 
 // ini_set('display_errors', 1); ini_set('display_startup_errors', 1); error_reporting(E_ALL);
 
-// @TODO: Save should show progress and status (show result (updated, added, deleted))
 // @TODO: deck_cards_history (and delete it also on deleting the card?)
 // @TODO: Add lazy load
 // @TODO: Allow language switcher in the search modal
@@ -151,8 +150,7 @@ if ($deck != "" ) {
 
 			$mysqli->close();
 
-			print_r($stats);
-			die("OK");
+			die(json_encode($stats));
 		}
 	}
 }

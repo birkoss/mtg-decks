@@ -90,6 +90,10 @@ img.mtg-card-thumbnail {
 	}
 }
 
+#save-results {
+    padding-right: 10px;
+}
+
 /* Misc */
 
 .card-symbol{

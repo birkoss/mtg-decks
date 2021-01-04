@@ -100,6 +100,8 @@ jQuery(document).ready(function() {
     jQuery(".btn-save").click(function(event) {
         event.preventDefault();
 
+        jQuery("#save-results").html("");
+
         let cards = {};
 
         jQuery(".card-type").each(function (index_type, element_type) {
@@ -124,6 +126,27 @@ jQuery(document).ready(function() {
             }
         }).done(function (res) {
             jQuery(this).attr("disabled", true);
+
+            stats = JSON.parse(res);
+
+            let saved_results = "";
+            if (stats['added'] > 0) {
+                saved_results += stats['added'] + " added, ";
+            }
+            if (stats['updated'] > 0) {
+                saved_results += stats['updated'] + " updated, ";
+            }
+            if (stats['deleted'] > 0) {
+                saved_results += stats['deleted'] + " deleted, ";
+            }
+
+            if (saved_results == "") {
+                saved_results = "Nothing changed, ";
+            }
+
+            console.log(saved_results);
+
+            jQuery("#save-results").html(saved_results.substring(0, saved_results.length-2));
         }).fail(function (res) {
             console.log("NOT SAVED"); 
         });

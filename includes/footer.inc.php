@@ -2,6 +2,7 @@
 
   <?php if ($action == "edit") { ?>
     <nav class="navbar fixed-bottom navbar-expand-sm navbar-light bg-light" style="justify-content: flex-end;">
+      <div id="save-results" class="text-muted"></div>
       <button class="btn btn-secondary btn-save my-2 my-sm-0">Save</button>
     </nav>
   <?php } ?>

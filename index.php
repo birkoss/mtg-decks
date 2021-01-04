@@ -1,8 +1,8 @@
 <?php
+	header('Content-Type: text/html; charset=utf-8');
 
-// ini_set('display_errors', 1); ini_set('display_startup_errors', 1); error_reporting(E_ALL);
+ // ini_set('display_errors', 1); ini_set('display_startup_errors', 1); error_reporting(E_ALL);
 
-// @TODO: Allow language switcher in the search modal
 // @TODO: Allow to add status tracking regarding if we want to change the card (wrong language, is foil, condition, etc...)
 // @TODO: Add the qty in a badge on the card (always visible, and updated)
 // @TODO: Force the color to be depending on the Commander Identity on the search modal
@@ -35,6 +35,7 @@ if ($deck != "" ) {
 	if (isset($_POST['action'])) {
 		if ($_POST['action'] == "import") {
 			$mysqli = new mysqli("127.0.0.1", $DB_USERNAME, $DB_PASSWORD, $DB_NAME);
+			$mysqli->set_charset('utf8mb4');
 
 			$stmt = $mysqli->prepare("SELECT * FROM cards WHERE id=?;");
 			$stmt->bind_param("s", $_POST['id']);
@@ -49,7 +50,7 @@ if ($deck != "" ) {
 			} else {
 				$card = array(
 					"id" => $_POST['id'],
-					"name" => $card_data['printed_name'],
+					"name_fr" => (isset($card_data['printed_name']) ? $card_data['printed_name'] : ""),
 					"name_en" => $card_data['name'],
 					"date_added" => date("Y-m-d H:i:s"),
 					"date_updated" => date("Y-m-d H:i:s"),
@@ -58,8 +59,8 @@ if ($deck != "" ) {
 				);
 
 				try {
-					$insert = $mysqli->prepare("INSERT INTO cards (id, name, name_en, date_added, date_updated, type, data) VALUES (?, ?, ?, ?, ?, ?, ?);");
-					$insert->bind_param("sssssss", $card['id'], $card['name'], $card['name_en'], $card['date_added'], $card['date_updated'], $card['type'], $card['data']);
+					$insert = $mysqli->prepare("INSERT INTO cards (id, name_fr, name_en, date_added, date_updated, type, data) VALUES (?, ?, ?, ?, ?, ?, ?);");
+					$insert->bind_param("sssssss", $card['id'], $card['name_fr'], $card['name_en'], $card['date_added'], $card['date_updated'], $card['type'], $card['data']);
 					$result = $insert->execute();
 					
 				} catch (Exception $e) {
@@ -77,6 +78,7 @@ if ($deck != "" ) {
 			die($html);
 		} else if ($_POST['action'] == "save") {
 			$mysqli = new mysqli("127.0.0.1", $DB_USERNAME, $DB_PASSWORD, $DB_NAME);
+			$mysqli->set_charset('utf8mb4');
 
 			$cards = $_POST['cards'];
 
@@ -262,8 +264,18 @@ if ($deck != "") {
 		<div class="modal fade" id="modalSearchCard" data-backdrop="static" data-keyboard="false">
 			<div class="modal-dialog" role="document">
 				<div class="modal-content">
-				<div class="modal-header">
-					<h5 class="modal-title">Recherche</h5>
+				<div class="modal-header" style="align-items: center;">
+					<h5 class="modal-title">Recherche </h5>
+
+					<div class="modal-lang btn-group btn-group-toggle ml-3" data-toggle="buttons" style="">
+  <label class="btn btn-primary">
+    <input type="radio" name="options" id="option1" value="fr" autocomplete="off" checked=""> Français
+  </label>
+  <label class="btn btn-primary	">
+    <input type="radio" name="options" id="option2" value="en" autocomplete="off"> Anglais
+  </label>
+</div>
+
 					<button type="button" class="close" data-dismiss="modal" aria-label="Close">
 					<span aria-hidden="true">&times;</span>
 					</button>

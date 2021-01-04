@@ -5,6 +5,13 @@
 // @TODO: Save should show progress and status
 // @TODO: deck_cards_history (and delete it also on deleting the card?)
 // @TODO: Fix php errors and warning
+// @TODO: Add lazy load
+// @TODO: Allow language switcher in the search modal
+// @TODO: Allow to add status regarding if we want to change the card (wrong language, etc...)
+// @TODO: Add the qty in a badge (always visible)
+// @TODO: Force the color to be depending on the Commander Identity
+// @TODO: Allow to limit the number of card in a type (commander: only 1)
+// @TODO: Prevent adding a card with it already exists in the current TYPE
 
 include("includes/var.inc.php");
 include("includes/functions.inc.php");
@@ -218,32 +225,35 @@ if ($deck != "") {
 		<?php
 	}
 	echo '</div>';
-	?>
-	<div class="modal fade" id="modalSearchCard" data-bs-backdrop="static" data-bs-keyboard="false">
-	<div class="modal-dialog" role="document">
-		<div class="modal-content">
-		<div class="modal-header">
-			<h5 class="modal-title">Cards Search</h5>
-			<button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
-			<span aria-hidden="true">&times;</span>
-			</button>
-		</div>
-		<div class="modal-body">
-			<form id="formSearchCard">
-			<div class="form-group">
-				<label for="inputSearchCard">Card Name</label>
-				<input type="text" class="form-control" style="max-width: 300px;" id="inputSearchCard" placeholder="Card Name" autocomplete="off" />
+	
+	if ($action == "edit") {
+		?>
+		<div class="modal fade" id="modalSearchCard" data-bs-backdrop="static" data-bs-keyboard="false">
+			<div class="modal-dialog" role="document">
+				<div class="modal-content">
+				<div class="modal-header">
+					<h5 class="modal-title">Cards Search</h5>
+					<button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
+					<span aria-hidden="true">&times;</span>
+					</button>
 				</div>
-			</form>
-			<div id="resultSearchCard"></div>
+				<div class="modal-body">
+					<form id="formSearchCard">
+					<div class="form-group">
+						<label for="inputSearchCard">Card Name</label>
+						<input type="text" class="form-control" style="max-width: 300px;" id="inputSearchCard" placeholder="Card Name" autocomplete="off" />
+						</div>
+					</form>
+					<div id="resultSearchCard"></div>
+				</div>
+				<div class="modal-footer">
+					<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+				</div>
+				</div>
+			</div>
 		</div>
-		<div class="modal-footer">
-			<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-		</div>
-		</div>
-	</div>
-	</div>
-	<?php
+		<?php
+	}
 } else {
 	?>
 	<div class="jumbotron mt-5">

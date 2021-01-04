@@ -21,8 +21,6 @@ if (isset($_GET['deck'])) {
 function get_cards($deck) {
 	include("var.inc.php");
 
-	$decks = array();
-
 	$mysqli = new mysqli("127.0.0.1", $DB_USERNAME, $DB_PASSWORD, $DB_NAME);
 
 	$select = $mysqli->prepare("SELECT dc.qty, dc.type, c.id, c.name, c.name_en, c.data FROM deck_cards dc LEFT JOIN cards c on c.id=dc.card_id WHERE dc.deck_id=? ORDER BY c.name");
@@ -37,7 +35,6 @@ function get_cards($deck) {
 			if (!isset($cards[$card['type']])) {
 				$cards[ $card['type'] ] = array();
 			}
-
 			$cards[ $card['type'] ][] = $card;
 		}
 	}

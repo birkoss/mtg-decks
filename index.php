@@ -2,7 +2,6 @@
 
 // ini_set('display_errors', 1); ini_set('display_startup_errors', 1); error_reporting(E_ALL);
 
-// @TODO: deck_cards_history (and delete it also on deleting the card?)
 // @TODO: Add lazy load
 // @TODO: Allow language switcher in the search modal
 // @TODO: Allow to add status regarding if we want to change the card (wrong language, etc...)
@@ -82,13 +81,36 @@ if ($deck != "" ) {
 
 			$current_cards = get_cards($deck);
 
+			/* Get the existing saved cards for a backup purpose */
+			$deck_backup = array();
+			$select = $mysqli->prepare("SELECT dc.qty, dc.type, dc.card_id FROM deck_cards dc WHERE dc.deck_id=?");
+			$select->bind_param("s", $deck);
+			$select->execute();
+		
+			$result = $select->get_result();
+			if ($result->num_rows) {
+				while ($card = $result->fetch_assoc()) {
+					if (!isset($deck_backup[$card['type']])) {
+						$deck_backup[ $card['type'] ] = array();
+					}
+					$deck_backup[ $card['type'] ][] = array(
+						"id" => $card['card_id'],
+						"qty" => $card['qty']
+					);
+				}
+			}
+			$select->close();
+
+
 			$stats = array(
 				"updated" => 0,
 				"added" => 0,
 				"deleted" => 0,
-				"total" => 0
+				"total" => 0,
+				"backuped" => 0
 			);
 
+			/* Update quantity or add new cards in deck */
 			foreach ($cards as $type_id => $type_cards) {
 				foreach ($type_cards as $card) {
 					$stats['total']++;
@@ -133,6 +155,7 @@ if ($deck != "" ) {
 				}
 			}
 
+			/* Delete existing card not in the deck anymore */
 			foreach ($current_cards as $type_id => $type_cards) {
 				foreach ($type_cards as $card) {
 					if ($card != null) {
@@ -145,6 +168,18 @@ if ($deck != "" ) {
 							$stats['deleted']++;
 						}
 					}
+				}
+			}
+
+			/* If we need to create a backup, do it */
+			if ($stats['updated'] > 0 || $stats['deleted'] > 0 || $stats['added'] > 0) {
+				$insert = $mysqli->prepare("INSERT INTO deck_backups (deck_id, date_added, cards) VALUES (?, ?, ?);");
+				$insert->bind_param("sss", $deck, date("Y-m-d H:i:s"), json_encode($deck_backup));
+				$backuped = $insert->execute();
+				$insert->close();
+
+				if ($backuped) {
+					$stats['backuped'] = 1;
 				}
 			}
 

@@ -24,7 +24,7 @@ function get_cards($deck) {
 	$mysqli = new mysqli("127.0.0.1", $DB_USERNAME, $DB_PASSWORD, $DB_NAME);
 	$mysqli->set_charset('utf8mb4');
 
-	$select = $mysqli->prepare("SELECT dc.qty, dc.type, c.id, c.name_fr, c.name_en, c.colors, c.data, (CASE c.name_fr WHEN '' THEN c.name_en ELSE c.name_fr END) as visible_name  FROM deck_cards dc LEFT JOIN cards c on c.id=dc.card_id WHERE dc.deck_id=? ORDER BY visible_name");
+	$select = $mysqli->prepare("SELECT dc.qty, dc.type, dc.is_starred, c.id, c.name_fr, c.name_en, c.colors, c.data, (CASE c.name_fr WHEN '' THEN c.name_en ELSE c.name_fr END) as visible_name  FROM deck_cards dc LEFT JOIN cards c on c.id=dc.card_id WHERE dc.deck_id=? ORDER BY visible_name");
 	$select->bind_param("s", $deck);
 	$select->execute();
 
@@ -76,7 +76,7 @@ function generate_card($card) {
 	$qty = max(1, (int)$card['qty']);
 
 	$html = "";
-	$html .= '<div class="mtg-card" data-id="'.$card['id'].'" data-name="'.($card['name_fr'] != "" ? $card['name_fr'] : $card['name_en']).'" data-qty="'.$qty.'">';
+	$html .= '<div class="mtg-card" data-id="'.$card['id'].'" data-starred="'.(int)$card['is_starred'].'" data-name="'.($card['name_fr'] != "" ? $card['name_fr'] : $card['name_en']).'" data-qty="'.$qty.'">';
 	$html .= '<img loading="lazy" class="responsive" width="480" height="640" src="/assets/cards/' . $card['id'] . '.jpg" />';
 	$html .= '</div>';
 	return $html;

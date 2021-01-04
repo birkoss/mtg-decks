@@ -119,7 +119,8 @@ jQuery(document).ready(function() {
             jQuery(element_type).find("div.mtg-card").each(function (index_card, element_card) {
                 cards[type].push({
                     "card_id": jQuery(element_card).data("id"),
-                    "qty": jQuery(element_card).attr("data-qty")
+                    "qty": jQuery(element_card).attr("data-qty"),
+                    "is_starred": jQuery(element_card).attr("data-starred")
                 });
             });
         });
@@ -217,6 +218,14 @@ function create_deck_cards_events() {
 
             form.appendChild(input);
 
+            let buttonStar = document.createElement("button");
+            buttonStar.className = "btn btn-" + (jQuery(parent).attr("data-starred") == 1 ? "info" : "secondary");
+            let star = document.createElement("i");
+            star.className = "fas fa-star";
+
+            buttonStar.appendChild(star);
+            action.appendChild(buttonStar);
+
             action.appendChild(form);
 
             action.appendChild(button);
@@ -236,7 +245,7 @@ function create_deck_cards_events() {
                 }
             });
 
-            //parent.append('<div class="action"><button class="btn btn-danger"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-trash-fill" viewBox="0 0 16 16"><path d="M2.5 1a1 1 0 0 0-1 1v1a1 1 0 0 0 1 1H3v9a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V4h.5a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H10a1 1 0 0 0-1-1H7a1 1 0 0 0-1 1H2.5zm3 4a.5.5 0 0 1 .5.5v7a.5.5 0 0 1-1 0v-7a.5.5 0 0 1 .5-.5zM8 5a.5.5 0 0 1 .5.5v7a.5.5 0 0 1-1 0v-7A.5.5 0 0 1 8 5zm3 .5v7a.5.5 0 0 1-1 0v-7a.5.5 0 0 1 1 0z"/></svg></button></div>');
+            /* Button DELETE */
             jQuery(button).click(function(event) {
                 event.preventDefault();
 
@@ -248,6 +257,26 @@ function create_deck_cards_events() {
                     jQuery(container).find(".card-text").show();
                 }
             });
+
+            /* Button STAR */
+            jQuery(buttonStar).click(function(event) {
+                event.preventDefault();
+
+                let is_starred = jQuery(this).parents(".mtg-card").attr("data-starred");
+
+                console.log(is_starred);
+
+                jQuery(this).removeClass("btn-info").removeClass("btn-secondary");
+
+                if (is_starred == 1) {
+                    jQuery(this).addClass("btn-secondary");
+                } else {
+                    jQuery(this).addClass("btn-info");
+                }
+
+                jQuery(this).parents(".mtg-card").attr("data-starred", (is_starred == 1 ? 0 : 1));
+            });
+
         }
     });
 }

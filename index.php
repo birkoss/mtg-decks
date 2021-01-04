@@ -1,7 +1,7 @@
 <?php
 header('Content-Type: text/html; charset=utf-8');
 
- // ini_set('display_errors', 1); ini_set('display_startup_errors', 1); error_reporting(E_ALL);
+ ini_set('display_errors', 1); ini_set('display_startup_errors', 1); error_reporting(E_ALL);
 
 // @TODO: Allow to add status tracking regarding if we want to change the card (wrong language, is foil, condition, etc...)
 // @TODO: Add the qty in a badge on the card (always visible, and updated)
@@ -76,6 +76,9 @@ if ($deck != "" ) {
 					"id" => $_POST['id'],
 					"name_fr" => (isset($card_data['printed_name']) ? $card_data['printed_name'] : ""),
 					"name_en" => $card_data['name'],
+					"colors" => implode(",", $card_data['colors']),
+					"cmc" => $card_data['cmc'],
+					"lang" => $card_data['lang'],
 					"date_added" => date("Y-m-d H:i:s"),
 					"date_updated" => date("Y-m-d H:i:s"),
 					"type" => "",
@@ -83,8 +86,8 @@ if ($deck != "" ) {
 				);
 
 				try {
-					$insert = $mysqli->prepare("INSERT INTO cards (id, name_fr, name_en, date_added, date_updated, type, data) VALUES (?, ?, ?, ?, ?, ?, ?);");
-					$insert->bind_param("sssssss", $card['id'], $card['name_fr'], $card['name_en'], $card['date_added'], $card['date_updated'], $card['type'], $card['data']);
+					$insert = $mysqli->prepare("INSERT INTO cards (id, name_fr, name_en, lang, cmc, colors, date_added, date_updated, type, data) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);");
+					$insert->bind_param("ssssssssss", $card['id'], $card['name_fr'], $card['name_en'], $card['lang'], $card['cmc'], $card['colors'], $card['date_added'], $card['date_updated'], $card['type'], $card['data']);
 					$result = $insert->execute();
 					
 				} catch (Exception $e) {
@@ -94,6 +97,7 @@ if ($deck != "" ) {
 			}
 
 			$card['qty'] = 1;
+			$card['is_starred'] = 0;
 			$html = generate_card($card);
 			
 			$stmt->close();
@@ -110,7 +114,7 @@ if ($deck != "" ) {
 
 			/* Get the existing saved cards for a backup purpose */
 			$deck_backup = array();
-			$select = $mysqli->prepare("SELECT dc.qty, dc.type, dc.card_id FROM deck_cards dc WHERE dc.deck_id=?");
+			$select = $mysqli->prepare("SELECT dc.qty, dc.type, dc.card_id, dc.is_starred FROM deck_cards dc WHERE dc.deck_id=?");
 			$select->bind_param("s", $deck);
 			$select->execute();
 		
@@ -122,7 +126,8 @@ if ($deck != "" ) {
 					}
 					$deck_backup[ $card['type'] ][] = array(
 						"id" => $card['card_id'],
-						"qty" => $card['qty']
+						"qty" => $card['qty'],
+						"is_starred" => $card['is_starred']
 					);
 				}
 			}
@@ -144,24 +149,28 @@ if ($deck != "" ) {
 
 					$existing = false;
 					$need_update = false;
-					foreach ($current_cards[$type_id] as $current_index => $current_card) {
-						if ($current_card['id'] == $card['card_id']) {
-							$existing = true;
-
-							if ($current_card['qty'] != $card['qty']) {
-								$need_update = true;
+					if (isset($current_cards[$type_id])) {
+						foreach ($current_cards[$type_id] as $current_index => $current_card) {
+							if ($current_card['id'] == $card['card_id']) {
+								$existing = true;
+	
+								if ($current_card['qty'] != $card['qty'] || $current_card['is_starred'] != $card['is_starred']) {
+									$need_update = true;
+								}
+	
+								// Remove it from the existing index (to be able to delete the remaining)
+								$current_cards[$type_id][$current_index] = null;
+								break;
 							}
-
-							// Remove it from the existing index (to be able to delete the remaining)
-							$current_cards[$type_id][$current_index] = null;
-							break;
 						}
 					}
 
+					$now = date("Y-m-d H:i:s");
+
 					if ($existing) {
 						if ($need_update) {
-							$update = $mysqli->prepare("UPDATE deck_cards set qty=?, date_updated=? where deck_id=? AND card_id=? AND type=?;");
-							$update->bind_param("sssss", $card['qty'], date("Y-m-d H:i:s"), $deck, $card['card_id'], $type_id);
+							$update = $mysqli->prepare("UPDATE deck_cards set qty=?, is_starred=?, date_updated=? where deck_id=? AND card_id=? AND type=?;");
+							$update->bind_param("sdssss", $card['qty'], $card['is_starred'], $now, $deck, $card['card_id'], $type_id);
 							$updated = $update->execute();
 							$update->close();
 			
@@ -170,8 +179,8 @@ if ($deck != "" ) {
 							}
 						}
 					} else {
-						$insert = $mysqli->prepare("INSERT INTO deck_cards (deck_id, card_id, type, qty, date_added, date_updated) VALUES (?, ?, ?, ?, ?, ?);");
-						$insert->bind_param("ssssss", $deck, $card['card_id'], $type_id, $card['qty'], date("Y-m-d H:i:s"), date("Y-m-d H:i:s"));
+						$insert = $mysqli->prepare("INSERT INTO deck_cards (deck_id, card_id, type, qty, is_starred, date_added, date_updated) VALUES (?, ?, ?, ?, ?, ?, ?);");
+						$insert->bind_param("ssssdss", $deck, $card['card_id'], $type_id, $card['qty'], $card['is_starred'], $now, $now);
 						$added = $insert->execute();
 						$insert->close();
 		
@@ -200,8 +209,11 @@ if ($deck != "" ) {
 
 			/* If we need to create a backup, do it */
 			if ($stats['updated'] > 0 || $stats['deleted'] > 0 || $stats['added'] > 0) {
+				$now = date("Y-m-d H:i:s");
+				$cards = json_encode($deck_backup);
+
 				$insert = $mysqli->prepare("INSERT INTO deck_backups (deck_id, date_added, cards) VALUES (?, ?, ?);");
-				$insert->bind_param("sss", $deck, date("Y-m-d H:i:s"), json_encode($deck_backup));
+				$insert->bind_param("sss", $deck, $now, $cards);
 				$backuped = $insert->execute();
 				$insert->close();
 
@@ -261,8 +273,12 @@ if ($deck != "") {
 	echo '<div class="types my-5">';
 	$commander_colors = [];
 	foreach($types as $type_id => $type) {
+		$is_legendary = (isset($type['is-legendary']) ? (int)$type['is-legendary'] : 0);
+		$limit = (isset($type['limit']) ? (int)$type['limit'] : 0);
+		
+		// @TODO: Remove data-type
 		?>
-		<div class="card-type card border-primary mb-5" data-limit="<?php echo (int)$type['limit'] ?>" data-legendary="<?php echo (int)$type['is-legendary'] ?>" data-type="<?php echo $type_id ?>" data-card-type="<?php echo $type['type'] ?>">
+		<div class="card-type card border-primary mb-5" data-limit="<?php echo $limit ?>" data-legendary="<?php echo $is_legendary ?>" data-type="<?php echo $type_id ?>" data-card-type="<?php echo $type['type'] ?>">
 		  <div class="card-header">
 		  	<span><?php echo $type['label'] ?><span class="cards-total"></span></span>
 		  	<?php if ($action == "edit") { ?>

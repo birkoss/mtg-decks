@@ -1,18 +1,42 @@
 <?php
-	header('Content-Type: text/html; charset=utf-8');
+header('Content-Type: text/html; charset=utf-8');
 
  // ini_set('display_errors', 1); ini_set('display_startup_errors', 1); error_reporting(E_ALL);
 
 // @TODO: Allow to add status tracking regarding if we want to change the card (wrong language, is foil, condition, etc...)
 // @TODO: Add the qty in a badge on the card (always visible, and updated)
-// @TODO: Force the color to be depending on the Commander Identity on the search modal
-// @TODO: Allow to limit the number of card in a type (commander: only 1)
 // @TODO: Prevent adding a card with it already exists in the current TYPE (prevent duplicate, and in the total deck)
 // @TODO: Prevent search without keyword (min length)
 // @TODO: Add navbar for view mode (picture mode, compact mode, stats, etc.)
 
 include("includes/var.inc.php");
 include("includes/functions.inc.php");
+
+/*
+$mysqli = new mysqli("127.0.0.1", $DB_USERNAME, $DB_PASSWORD, $DB_NAME);
+$mysqli->set_charset('utf8mb4');
+
+$stmt = $mysqli->prepare("SELECT * FROM cards");
+$stmt->execute();
+
+$result = $stmt->get_result();
+if ($result->num_rows) {
+	while ($card = $result->fetch_assoc()) {
+		$data = json_decode($card['data'], true);
+
+		$colors = implode(",", $data['colors']);
+		$update = $mysqli->prepare("UPDATE cards set lang=?, colors=?, cmc=? where id=?;");
+		$update->bind_param("ssss", $data['lang'], $colors, $data['cmc'], $card['id']);
+		$updated = $update->execute();
+		$update->close();
+	}
+}
+
+$stmt->close();
+$mysqli->close();
+
+die("-------------------------");
+*/
 
 $deck = (isset($_GET['deck']) ? $_GET['deck'] : "");
 $action = (isset($_GET['action']) ? $_GET['action'] : "");
@@ -202,8 +226,8 @@ if ($deck != "") {
 		"commander" => array(
 			"label" => "Commander",
 			"type" => "creature",
-			"is-legendary" => 1
-			/* @TODO: limit => 1 */
+			"is-legendary" => 1,
+			"limit" => 1
 		),
 		"creatures" => array(
 			"label" => "Creatures",
@@ -235,9 +259,10 @@ if ($deck != "") {
 	);
 
 	echo '<div class="types my-5">';
+	$commander_colors = [];
 	foreach($types as $type_id => $type) {
 		?>
-		<div class="card-type card border-primary mb-5" data-legendary="<?php echo (int)$type['is-legendary'] ?>" data-type="<?php echo $type_id ?>" data-card-type="<?php echo $type['type'] ?>">
+		<div class="card-type card border-primary mb-5" data-limit="<?php echo (int)$type['limit'] ?>" data-legendary="<?php echo (int)$type['is-legendary'] ?>" data-type="<?php echo $type_id ?>" data-card-type="<?php echo $type['type'] ?>">
 		  <div class="card-header">
 		  	<span><?php echo $type['label'] ?><span class="cards-total"></span></span>
 		  	<?php if ($action == "edit") { ?>
@@ -251,6 +276,11 @@ if ($deck != "") {
 				foreach ($cards[$type_id] as $card) {
 					echo generate_card($card);
 				}
+
+				if ($type_id == "commander" && count($cards[$type_id]) > 0) {
+					$commander = $cards[$type_id][0];
+					$commander_colors = explode(",", $commander['colors']);
+				}
 			}
 			?>
 		  </div>
@@ -258,6 +288,10 @@ if ($deck != "") {
 		<?php
 	}
 	echo '</div>';
+
+	echo '<script>
+		var commander_colors = ' . json_encode($commander_colors) . ';
+	</script>';
 
 	if ($action == "edit") {
 		?>
@@ -268,13 +302,9 @@ if ($deck != "") {
 					<h5 class="modal-title">Recherche </h5>
 
 					<div class="modal-lang btn-group btn-group-toggle ml-3" data-toggle="buttons" style="">
-  <label class="btn btn-primary">
-    <input type="radio" name="options" id="option1" value="fr" autocomplete="off" checked=""> Français
-  </label>
-  <label class="btn btn-primary	">
-    <input type="radio" name="options" id="option2" value="en" autocomplete="off"> Anglais
-  </label>
-</div>
+						<label class="btn btn-primary"><input type="radio" name="options" id="option1" value="fr" autocomplete="off" checked=""> Français</label>
+						<label class="btn btn-primary"><input type="radio" name="options" id="option2" value="en" autocomplete="off"> Anglais</label>
+					</div>
 
 					<button type="button" class="close" data-dismiss="modal" aria-label="Close">
 					<span aria-hidden="true">&times;</span>

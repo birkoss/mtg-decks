@@ -25,6 +25,11 @@ jQuery(document).ready(function() {
             query = "type:legendary " + query;
         }
 
+        /* Force the colors from the commander */
+        if (commander_colors.length > 0) {
+            query = "commander:" + commander_colors.join("") + " " + query;
+        }
+
         jQuery.ajax(
             'https://api.scryfall.com/cards/search?q=' + query
         ).done(function (res) {
@@ -175,6 +180,15 @@ function update_cards_total() {
             total += parseInt(jQuery(card_element).attr("data-qty"));
         });
         jQuery(type_element).find(".cards-total").html(" x " + total);
+
+        /* Apply the Card Type limit (if available) */
+        if (jQuery(type_element).data("limit") > 0) {
+            if (total >= jQuery(type_element).data("limit")) {
+                jQuery(type_element).find(".btn-search-cards").hide();
+            } else {
+                jQuery(type_element).find(".btn-search-cards").show();
+            }
+        }
     });
 }
 

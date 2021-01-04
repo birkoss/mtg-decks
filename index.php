@@ -2,7 +2,7 @@
 
 // ini_set('display_errors', 1); ini_set('display_startup_errors', 1); error_reporting(E_ALL);
 
-// @TODO: Save should show progress and status
+// @TODO: Save should show progress and status (show result (updated, added, deleted))
 // @TODO: deck_cards_history (and delete it also on deleting the card?)
 // @TODO: Add lazy load
 // @TODO: Allow language switcher in the search modal
@@ -97,7 +97,7 @@ if ($deck != "" ) {
 					$existing = false;
 					$need_update = false;
 					foreach ($current_cards[$type_id] as $current_index => $current_card) {
-						if ($current_card['card_id'] == $card['id']) {
+						if ($current_card['id'] == $card['card_id']) {
 							$existing = true;
 
 							if ($current_card['qty'] != $card['qty']) {
@@ -136,13 +136,15 @@ if ($deck != "" ) {
 
 			foreach ($current_cards as $type_id => $type_cards) {
 				foreach ($type_cards as $card) {
-					$delete = $mysqli->prepare("DELETE FROM deck_cards WHERE deck_id=? AND card_id=? AND type=?;");
-					$delete->bind_param("sss", $deck, $card['id'], $type_id);
-					$deleted = $delete->execute();
-					$delete->close();
+					if ($card != null) {
+						$delete = $mysqli->prepare("DELETE FROM deck_cards WHERE deck_id=? AND card_id=? AND type=?;");
+						$delete->bind_param("sss", $deck, $card['id'], $type_id);
+						$deleted = $delete->execute();
+						$delete->close();
 
-					if ($deleted) {
-						$stats['deleted']++;
+						if ($deleted) {
+							$stats['deleted']++;
+						}
 					}
 				}
 			}

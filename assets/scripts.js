@@ -123,7 +123,7 @@ jQuery(document).ready(function() {
                 "cards": cards
             }
         }).done(function (res) {
-            console.log("SAVED");
+            jQuery(this).attr("disabled", true);
         }).fail(function (res) {
             console.log("NOT SAVED"); 
         });

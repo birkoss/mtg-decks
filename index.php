@@ -126,7 +126,7 @@ if ($deck != "" ) {
 
 			/* Get the existing saved cards for a backup purpose */
 			$deck_backup = array();
-			$select = $mysqli->prepare("SELECT dc.qty, dc.type, dc.card_id, dc.is_starred FROM deck_cards dc WHERE dc.deck_id=?");
+			$select = $mysqli->prepare("SELECT dc.qty, dc.type, dc.card_id, dc.is_starred, dc.category FROM deck_cards dc WHERE dc.deck_id=?");
 			$select->bind_param("s", $deck);
 			$select->execute();
 		
@@ -139,6 +139,7 @@ if ($deck != "" ) {
 					$deck_backup[ $card['type'] ][] = array(
 						"id" => $card['card_id'],
 						"qty" => $card['qty'],
+						"category" => $card['category'],
 						"is_starred" => $card['is_starred']
 					);
 				}
@@ -166,7 +167,9 @@ if ($deck != "" ) {
 							if ($current_card['id'] == $card['card_id']) {
 								$existing = true;
 	
-								if ($current_card['qty'] != $card['qty'] || $current_card['is_starred'] != $card['is_starred']) {
+								if ($current_card['qty'] != $card['qty']
+									|| $current_card['is_starred'] != $card['is_starred']
+									|| $current_card['category'] != $card['category']) {
 									$need_update = true;
 								}
 	
@@ -181,8 +184,8 @@ if ($deck != "" ) {
 
 					if ($existing) {
 						if ($need_update) {
-							$update = $mysqli->prepare("UPDATE deck_cards set qty=?, is_starred=?, date_updated=? where deck_id=? AND card_id=? AND type=?;");
-							$update->bind_param("sdssss", $card['qty'], $card['is_starred'], $now, $deck, $card['card_id'], $type_id);
+							$update = $mysqli->prepare("UPDATE deck_cards set qty=?, is_starred=?, category=?, date_updated=? where deck_id=? AND card_id=? AND type=?;");
+							$update->bind_param("sdsssss", $card['qty'], $card['is_starred'], $card['category'], $now, $deck, $card['card_id'], $type_id);
 							$updated = $update->execute();
 							$update->close();
 			
@@ -191,8 +194,8 @@ if ($deck != "" ) {
 							}
 						}
 					} else {
-						$insert = $mysqli->prepare("INSERT INTO deck_cards (deck_id, card_id, type, qty, is_starred, date_added, date_updated) VALUES (?, ?, ?, ?, ?, ?, ?);");
-						$insert->bind_param("ssssdss", $deck, $card['card_id'], $type_id, $card['qty'], $card['is_starred'], $now, $now);
+						$insert = $mysqli->prepare("INSERT INTO deck_cards (deck_id, card_id, type, qty, category, is_starred, date_added, date_updated) VALUES (?, ?, ?, ?, ?, ?, ?, ?);");
+						$insert->bind_param("sssssdss", $deck, $card['card_id'], $type_id, $card['qty'], $card['category'], $card['is_starred'], $now, $now);
 						$added = $insert->execute();
 						$insert->close();
 		
@@ -372,6 +375,36 @@ if ($action == "preview" || $action == "edit") {
 						</div>
 					</form>
 					<div id="resultSearchCard"></div>
+				</div>
+				<div class="modal-footer">
+					<button type="button" class="btn btn-secondary" data-dismiss="modal">Fermer</button>
+				</div>
+				</div>
+			</div>
+		</div>
+		<div class="modal fade" id="modalCategory" data-backdrop="static" data-keyboard="false">
+			<div class="modal-dialog" role="document">
+				<div class="modal-content">
+				<div class="modal-header" style="align-items: center;">
+					<h5 class="modal-title">Catégorie</h5>
+
+					<button type="button" class="close" data-dismiss="modal" aria-label="Close">
+					<span aria-hidden="true">&times;</span>
+					</button>
+				</div>
+				<div class="modal-body">
+					<div class="list-group">
+						<?php
+						foreach ($categories as $category_id => $category) {
+							?>
+							<a href="#" data-category="<?php echo $category_id ?>" class="card-category list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+								<?php echo $category['label'] ?>
+								<span class="badge badge-primary badge-pill">0</span>
+							</a>
+							<?php
+						}
+						?>
+					</div>
 				</div>
 				<div class="modal-footer">
 					<button type="button" class="btn btn-secondary" data-dismiss="modal">Fermer</button>

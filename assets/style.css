@@ -103,6 +103,12 @@ img.responsive {
     padding-right: 10px;
 }
 
+.list-group-item.active {
+    color: #fff !important;
+    background-color: #375a7f !important;
+    border-color: #375a7f !important;
+}
+
 /* Misc */
 
 .card-symbol{

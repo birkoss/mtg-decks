@@ -1,4 +1,5 @@
 var search_cards = {};
+var current_card = null;
 
 jQuery(document).ready(function() {
     /* Enable events */
@@ -8,6 +9,7 @@ jQuery(document).ready(function() {
 
     update_cards_total();
 
+    /* Enable the Chart and canvas when needed */
     if (jQuery("#canvas").length) {
         var myChart = new Chart(ctx, {
             type: 'bar',
@@ -29,6 +31,26 @@ jQuery(document).ready(function() {
             }
         });
     }
+
+    jQuery("a.card-category").click(function(event) {
+        event.preventDefault();
+
+        /* Do nothing when clicked on the ACTIVE category */
+        if (jQuery(this).hasClass("active")) {
+            return;
+        }
+
+        jQuery("a.card-category").removeClass("active");
+        jQuery(this).addClass("active");
+
+        if (current_card == null) {
+            return;
+        }
+
+        jQuery(current_card).attr("data-category", jQuery(this).attr("data-category"));
+
+        jQuery('#modalCategory').modal("hide");
+    });
 
     /* Search the API when the modal form is submitted */
     jQuery('#formSearchCard').submit(function(event) {
@@ -106,9 +128,20 @@ jQuery(document).ready(function() {
         });
     });
 
+    /* Select the current card category */
+    jQuery('#modalCategory').on('shown.bs.modal', function () {
+        jQuery("a.card-category").removeClass("active");
+
+        if (current_card !== null) {
+            jQuery("a.card-category[data-category='" + jQuery(current_card).attr("data-category") + "'").addClass("active");
+        }
+
+        update_cards_categories_total();
+    });
+
     /* Focus the text input then the modal is shown */
     jQuery('#modalSearchCard').on('shown.bs.modal', function () {
-      jQuery('#inputSearchCard').trigger('focus')
+        jQuery('#inputSearchCard').trigger('focus')
     });
 
     /* Btn SEARCH clicked in the Cart Type */
@@ -142,6 +175,7 @@ jQuery(document).ready(function() {
                 cards[type].push({
                     "card_id": jQuery(element_card).data("id"),
                     "qty": jQuery(element_card).attr("data-qty"),
+                    "category": jQuery(element_card).attr("data-category"),
                     "is_starred": jQuery(element_card).attr("data-starred")
                 });
             });
@@ -183,6 +217,14 @@ jQuery(document).ready(function() {
     });
 });
 
+function update_cards_categories_total() {
+    jQuery("a.card-category").each(function(index, category) {
+        let total = 0;
+        total = jQuery(".mtg-card[data-category='" + jQuery(category).attr("data-category") + "']").length;
+        jQuery(this).find(".badge-pill").html(total);
+    });
+}
+
 function show_modal(type) {
     jQuery('#modalSearchCard').modal();
 }
@@ -216,10 +258,10 @@ function update_cards_total() {
 }
 
 function create_deck_cards_events() {
-    jQuery(".card-type .mtg-cards > .mtg-card img").off("click").click(function(event) {
+    jQuery(".card-type .mtg-cards > .mtg-card").hover(function(event) {
         event.preventDefault();
 
-        let parent = jQuery(this).parents(".mtg-card");
+        let parent = jQuery(this);
         let container = jQuery(parent).parents(".mtg-cards");
 
         if (jQuery(parent).find(".action").length > 0) {
@@ -247,6 +289,14 @@ function create_deck_cards_events() {
 
             buttonStar.appendChild(star);
             action.appendChild(buttonStar);
+
+            let buttonCategory = document.createElement("button");
+            buttonCategory.className = "btn btn-" + (jQuery(parent).attr("data-starred") == 1 ? "info" : "secondary");
+            let listIcon = document.createElement("i");
+            listIcon.className = "fas fa-list";
+
+            buttonCategory.appendChild(listIcon);
+            action.appendChild(buttonCategory);
 
             action.appendChild(form);
 
@@ -299,7 +349,19 @@ function create_deck_cards_events() {
                 jQuery(this).parents(".mtg-card").attr("data-starred", (is_starred == 1 ? 0 : 1));
             });
 
+            /* Button CATEGORY */
+            jQuery(buttonCategory).click(function(event) {
+                event.preventDefault();
+
+                current_card = jQuery(this).parents(".mtg-card");
+
+                jQuery("a.card-category").removeClass("active");
+                jQuery('#modalCategory').modal("show");
+            });
+
         }
+    }, function() {
+        jQuery(this).find(".action").remove();
     });
 }
 

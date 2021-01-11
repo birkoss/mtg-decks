@@ -21,7 +21,7 @@ main.container {
 }
 
 .mtg-cards > .mtg-card img {
-    opacity: 0.7;
+    opacity: 0.5;
 }
 
 .mtg-cards > .mtg-card[data-starred="1"] img {
@@ -60,7 +60,7 @@ img.responsive {
     height: auto;
 }
 
-.mtg-cards img {
+.mtg-card img {
 	cursor: pointer;
 }
 

@@ -8,6 +8,28 @@ jQuery(document).ready(function() {
 
     update_cards_total();
 
+    if (jQuery("#canvas").length) {
+        var myChart = new Chart(ctx, {
+            type: 'bar',
+            data: barChartData,
+            options: {
+                tooltips: {
+                    mode: 'index',
+                    intersect: false
+                },
+                responsive: true,
+                scales: {
+                    xAxes: [{
+                        stacked: true,
+                    }],
+                    yAxes: [{
+                        stacked: true
+                    }]
+                }
+            }
+        });
+    }
+
     /* Search the API when the modal form is submitted */
     jQuery('#formSearchCard').submit(function(event) {
         event.preventDefault();

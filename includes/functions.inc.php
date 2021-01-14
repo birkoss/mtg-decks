@@ -82,3 +82,26 @@ function generate_card($card) {
 	$html .= '</div>';
 	return $html;
 }
+
+
+function get_card_type($type_line) {
+	$type = "";
+
+	if (preg_match("|Sorcery|Uim", $type_line)) {
+		$type = "sorcery";
+	} else if (preg_match("|Instant|Uim", $type_line)) {
+		$type = "instant";
+	} else if (preg_match("|Planeswalker|Uim", $type_line)) {
+		$type = "planeswalker";
+	} else if (preg_match("|Artifact|Uim", $type_line)) {
+		$type = "artifact";
+	} else if (preg_match("|Creature|Uim", $type_line)) {
+		$type = "creature";
+	} else if (preg_match("|Enchantment|Uim", $type_line)) {
+		$type = "enchantment";
+	} else if (preg_match("|Land|Uim", $type_line)) {
+		$type = "land";
+	}
+
+	return $type;
+}

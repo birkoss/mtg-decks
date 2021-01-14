@@ -24,9 +24,11 @@ if ($result->num_rows) {
 	while ($card = $result->fetch_assoc()) {
 		$data = json_decode($card['data'], true);
 
-		$colors = implode(",", $data['colors']);
-		$update = $mysqli->prepare("UPDATE cards set lang=?, colors=?, cmc=? where id=?;");
-		$update->bind_param("ssss", $data['lang'], $colors, $data['cmc'], $card['id']);
+		$type_line = $data['type_line'];
+		$type = get_card_type($data['type_line']);
+
+		$update = $mysqli->prepare("UPDATE cards set type=? where id=?;");
+		$update->bind_param("ss", $type, $card['id']);
 		$updated = $update->execute();
 		$update->close();
 	}
@@ -80,6 +82,8 @@ if ($deck != "" ) {
 				$colors = $card_data['colors'];
 			}
 
+			$type = get_card_type($card_data['type_line']);
+
 			$result = $stmt->get_result();
 			if ($result->num_rows) {
 				$card = $result->fetch_assoc();
@@ -93,7 +97,7 @@ if ($deck != "" ) {
 					"lang" => $card_data['lang'],
 					"date_added" => date("Y-m-d H:i:s"),
 					"date_updated" => date("Y-m-d H:i:s"),
-					"type" => "",
+					"type" => $type,
 					"data" => json_encode($card_data)
 				);
 

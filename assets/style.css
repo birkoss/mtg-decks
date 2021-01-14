@@ -46,6 +46,10 @@ main.container {
     display: flex;
 }
 
+.mtg-card > .action > * {
+    margin-right: 10px;
+}
+
 .mtg-card > .action input {
     max-width: 50px;
     text-align: center;

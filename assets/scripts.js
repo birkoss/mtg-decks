@@ -291,7 +291,7 @@ function create_deck_cards_events() {
             action.appendChild(buttonStar);
 
             let buttonCategory = document.createElement("button");
-            buttonCategory.className = "btn btn-" + (jQuery(parent).attr("data-starred") == 1 ? "info" : "secondary");
+            buttonCategory.className = "btn btn-" + (jQuery(parent).attr("data-category") != "" ? "info" : "secondary");
             let listIcon = document.createElement("i");
             listIcon.className = "fas fa-list";
 

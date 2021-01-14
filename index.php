@@ -291,6 +291,10 @@ $types = array(
 		"label" => "Artifacts",
 		"type" => "artifact"
 	),
+	"planeswalker" => array(
+		"label" => "Planeswalker",
+		"type" => "planeswalker"
+	),
 	"lands" => array(
 		"label" => "Lands",
 		"type" => "land"

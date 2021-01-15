@@ -24,6 +24,11 @@ if ($result->num_rows) {
 	while ($card = $result->fetch_assoc()) {
 		$data = json_decode($card['data'], true);
 
+		echo $data['prices']['usd'] . "<br />";
+		continue;
+		print_r($data);
+		die();
+
 		$type_line = $data['type_line'];
 		$type = get_card_type($data['type_line']);
 

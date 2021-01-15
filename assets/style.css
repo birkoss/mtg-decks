@@ -20,6 +20,13 @@ main.container {
     position: relative;
 }
 
+.mtg-cards.output-text {
+    display: block;
+}
+.mtg-cards.output-text > .mtg-card {
+    max-width: 100%;
+}
+
 .mtg-cards > .mtg-card img {
     opacity: 0.5;
 }

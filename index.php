@@ -366,13 +366,13 @@ if ($action == "edit" || $action == "preview") {
 					<div class="card-header">
 						<span><?php echo $section['label'] ?><span class="badge badge-primary badge-pill cards-total"><?php echo count($cards) ?></span></span>
 					</div>
-					<div class="card-body mtg-cards">
+					<div class="card-body mtg-cards output-<?php echo $output ?>">
 						<?php 
 							foreach ($cards as $card) {
 								if ($output == "image") {
 									echo generate_card($card);
 								} else {
-									echo $card['qty'] . " x " . $card['name_fr'] . " (". $card['name_en'].")<br />";
+									echo '<div class="mtg-card" data-qty="'.$card['qty'].'">'.$card['qty'] . " x " . $card['name_fr'] . " (". $card['name_en'].")</div>";
 								}
 							}
 						?>

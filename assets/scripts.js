@@ -10,10 +10,10 @@ jQuery(document).ready(function() {
     update_cards_total();
 
     /* Enable the Chart and canvas when needed */
-    if (jQuery("#canvas").length) {
-        var myChart = new Chart(ctx, {
+    if (jQuery("#canvas_casting_cost").length) {
+        var chart_casting_cost = new Chart(ctx_casting_cost, {
             type: 'bar',
-            data: barChartData,
+            data: data_casting_cost,
             options: {
                 tooltips: {
                     mode: 'index',
@@ -28,6 +28,22 @@ jQuery(document).ready(function() {
                         stacked: true
                     }]
                 }
+            }
+        });
+
+        var chart_card_type = new Chart(ctx_card_type, {
+            type: 'pie',
+            data: data_card_type,
+            options: {
+                responsive: true,
+            }
+        });
+
+        var chart_card_color = new Chart(ctx_card_color, {
+            type: 'pie',
+            data: data_card_color,
+            options: {
+                responsive: true,
             }
         });
     }

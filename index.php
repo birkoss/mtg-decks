@@ -393,65 +393,23 @@ if ($action == "edit" || $action == "preview") {
 
 	include("includes/modals.inc.php");
 
-} else if ($action == "preview__" || $action == "edit") {
-	$cards = get_cards($deck);
-
-	echo '<div class="types my-5">';
-	$commander_colors = [];
-	foreach($types as $type_id => $type) {
-		$is_legendary = (isset($type['is-legendary']) ? (int)$type['is-legendary'] : 0);
-		$limit = (isset($type['limit']) ? (int)$type['limit'] : 0);
-		$card_type = (isset($type['type']) ? (int)$type['type'] : "");
-		$has_cards = (isset($cards[$type_id]) && count($cards[$type_id]) > 0 ? true : false);
-
-		/* No cards in preview mode, skip this card types content */
-		if ($action != "edit" && !$has_cards) {
-			continue;
-		}
-		?>
-		<div class="card-type card border-primary mb-5" data-limit="<?php echo $limit ?>" data-legendary="<?php echo $is_legendary ?>" data-type="<?php echo $type_id ?>" data-card-type="<?php echo $card_type ?>">
-		  <div class="card-header">
-		  	<span><?php echo $type['label'] ?><span class="cards-total"></span></span>
-		  	<?php if ($action == "edit") { ?>
-		  		<button class="btn-search-cards btn btn-primary my-2 my-sm-0">Ajouter une carte</button>
-		  	<?php } ?>
-		  </div>
-		  <div class="card-body mtg-cards">
-		    <p class="card-text"<?php echo ($has_cards ? " style='display: none'" : "") ?>>No cards for the moment.</p>
-			<?php 
-			if ($has_cards) {
-				foreach ($cards[$type_id] as $card) {
-					if ($output == "image") {
-						echo generate_card($card);
-					} else {
-						echo $card['qty'] . " x " . $card['name_fr'] . " (". $card['name_en'].")<br />";
-					}
-				}
-
-				if ($type_id == "commander") {
-					$commander = $cards[$type_id][0];
-					$commander_colors = explode(",", $commander['colors']);
-				}
-			}
-			?>
-		  </div>
-		</div>
-		<?php
-	}
-	echo '</div>';
-
-	echo '<script>var commander_colors = ' . json_encode($commander_colors) . ';</script>';
-
-	if ($action == "edit") {
-		?>
-		
-		<?php
-	}
 } else if ($action == "stats") {
 	$cards = get_cards($deck);
 
 	$mana_costs = array();
 	$unique_colors = array();
+
+	$card_colors = array();
+
+	$card_types = array(
+		"creature" => 0,
+		"instant" => 0,
+		"sorcery" => 0,
+		"enchantment" => 0,
+		"artifact" => 0,
+		"land" => 0,
+		"planeswalker" => 0,
+	);
 
 	$colors = array(
 		"G" => "green",
@@ -461,40 +419,41 @@ if ($action == "edit" || $action == "preview") {
 		"W" => "white"
  	);
 
-	foreach($types as $type_id => $type) {
-		/* Skip excluded Card Types */
-		if (isset($type['exclude']) && $type['exclude'] ) {
+	foreach ($cards as $card) {
+		if ($card['is_wishlist'] == 1) {
 			continue;
 		}
+
+		$card_types[ $card['type'] ]++;
 		
-		if (isset($cards[$type_id]) && count($cards[$type_id]) > 0) {
-			foreach ($cards[$type_id] as $card) {
-				if ($type_id != "lands") {
+		if ($card['type'] != "land") {
 
-					$color = $card['colors'];
-					if ($color == "") {
-						$color = "colorless";
-					} else if (preg_match_all("|,|Uim", $color)) {
-						$color = "gold";
-					} else if (isset($colors[$color])) {
-						$color = $colors[$color];
-					}
-
-					$unique_colors[ $color ] = 1;
-
-					if (!isset($mana_costs[ $card['cmc'] ])) {
-						$mana_costs[ $card['cmc'] ] = array();
-					}
-					if (!isset($mana_costs[ $card['cmc'] ][ $color ])) {
-						$mana_costs[ $card['cmc'] ][ $color ] = 0;
-					}
-
-					$mana_costs[ $card['cmc'] ][ $color ]++;
-				}
+			$color = $card['colors'];
+			if ($color == "") {
+				$color = "colorless";
+			} else if (preg_match_all("|,|Uim", $color)) {
+				$color = "gold";
+			} else if (isset($colors[$color])) {
+				$color = $colors[$color];
 			}
-			//print_r($cards[$type_id]);
 
-			//die();
+			if ($color != "colorless") {
+				if (!isset($card_colors[$color])) {
+					$card_colors[$color] = 0;
+				}
+				$card_colors[ $color ] ++;
+			}
+
+			$unique_colors[ $color ] = 1;
+
+			if (!isset($mana_costs[ $card['cmc'] ])) {
+				$mana_costs[ $card['cmc'] ] = array();
+			}
+			if (!isset($mana_costs[ $card['cmc'] ][ $color ])) {
+				$mana_costs[ $card['cmc'] ][ $color ] = 0;
+			}
+
+			$mana_costs[ $card['cmc'] ][ $color ]++;
 		}
 	}
 
@@ -528,16 +487,83 @@ if ($action == "edit" || $action == "preview") {
 	ksort($mana_costs);
 	//print_r($mana_costs);
 	?>
-	<canvas id="canvas"></canvas>
+	<div class="card bg-light mb-3 mt-3">
+		<div class="card-header">Mana Curve</div>
+		<div class="card-body">
+			<canvas id="canvas_casting_cost"></canvas>
+		</div>
+	</div>
+
+	<div class="row">
+		<div class="col-sm">
+			<div class="card bg-light mb-3">
+				<div class="card-header">Card Types</div>
+				<div class="card-body">
+					<canvas id="canvas_card_type"></canvas>
+				</div>
+			</div>
+		</div>
+		<div class="col-sm">
+			<div class="card bg-light mb-3">
+				<div class="card-header">Card Colors</div>
+				<div class="card-body">
+					<canvas id="canvas_card_color"></canvas>
+				</div>
+			</div>
+		</div>
+	</div>
+	
 	<script>
-		var barChartData = {
+		var data_casting_cost = {
 			labels: <?php echo json_encode($mana_cost_amounts); ?>,
 			datasets: <?php echo json_encode($data) ?>
-
 		};
 
+		var data_card_type = {
+			datasets: [{
+					data: [
+						<?php echo $card_types['creature'] ?>,
+						<?php echo $card_types['land'] ?>,
+						<?php echo $card_types['instant'] ?>,
+						<?php echo $card_types['sorcery'] ?>,
+						<?php echo $card_types['artifact'] ?>,
+						<?php echo $card_types['enchantment'] ?>,
+						<?php echo $card_types['planeswalker'] ?>
+					],
+					backgroundColor: [
+						"red",
+						"blue",
+						"black",
+						"orange",
+						"yellow",
+						"gray",
+						"white"
+					],
+					label: 'Dataset 1'
+				}],
+				labels: [
+					'Creatures',
+					'Lands',
+					'Instants',
+					'Sorceries',
+					'Artifacts',
+					'Enchantments',
+					'Planeswalkers'
+				]
+		};
 
-		var ctx = document.getElementById('canvas').getContext('2d');
+		var data_card_color = {
+			datasets: [{
+					data: <?php echo json_encode(array_values($card_colors)) ?>,
+					backgroundColor: <?php echo json_encode(array_keys($card_colors)) ?>,
+					label: 'Dataset 1'
+				}],
+				labels: <?php echo json_encode(array_keys($card_colors)) ?>
+		};
+
+		var ctx_casting_cost = document.getElementById('canvas_casting_cost').getContext('2d');
+		var ctx_card_type = document.getElementById('canvas_card_type').getContext('2d');
+		var ctx_card_color = document.getElementById('canvas_card_color').getContext('2d');
 	</script>
 	<?php
 } else {

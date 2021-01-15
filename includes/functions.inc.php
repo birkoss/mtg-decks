@@ -24,7 +24,7 @@ function get_cards($deck) {
 	$mysqli = new mysqli("127.0.0.1", $DB_USERNAME, $DB_PASSWORD, $DB_NAME);
 	$mysqli->set_charset('utf8mb4');
 
-	$select = $mysqli->prepare("SELECT dc.qty, dc.type, dc.is_starred, dc.category, c.id, c.name_fr, c.name_en, c.colors, c.cmc, c.data, (CASE c.name_fr WHEN '' THEN c.name_en ELSE c.name_fr END) as visible_name  FROM deck_cards dc LEFT JOIN cards c on c.id=dc.card_id WHERE dc.deck_id=? ORDER BY visible_name");
+	$select = $mysqli->prepare("SELECT dc.qty, dc.is_starred, dc.is_wishlist, dc.category, c.id, c.name_fr, c.name_en, c.colors, c.type, c.cmc, c.data, (CASE c.name_fr WHEN '' THEN c.name_en ELSE c.name_fr END) as visible_name  FROM deck_cards dc LEFT JOIN cards c on c.id=dc.card_id WHERE dc.deck_id=? ORDER BY visible_name");
 	$select->bind_param("s", $deck);
 	$select->execute();
 
@@ -33,10 +33,7 @@ function get_cards($deck) {
 	$result = $select->get_result();
 	if ($result->num_rows) {
 		while ($card = $result->fetch_assoc()) {
-			if (!isset($cards[$card['type']])) {
-				$cards[ $card['type'] ] = array();
-			}
-			$cards[ $card['type'] ][] = $card;
+			$cards[] = $card;
 		}
 	}
 	
@@ -77,7 +74,7 @@ function generate_card($card) {
 	$category = (isset($card['category']) ? $card['category'] : "");
 
 	$html = "";
-	$html .= '<div class="mtg-card" data-category="'.$category.'" data-id="'.$card['id'].'" data-starred="'.(int)$card['is_starred'].'" data-name="'.($card['name_fr'] != "" ? $card['name_fr'] : $card['name_en']).'" data-qty="'.$qty.'">';
+	$html .= '<div class="mtg-card" data-category="'.$category.'" data-id="'.$card['id'].'" data-starred="'.(int)$card['is_starred'].'" data-wishlist="'.(int)$card['is_wishlist'].'" data-name="'.($card['name_fr'] != "" ? $card['name_fr'] : $card['name_en']).'" data-qty="'.$qty.'">';
 	$html .= '<img loading="lazy" class="responsive" width="480" height="640" src="/assets/cards/' . $card['id'] . '.jpg" />';
 	$html .= '</div>';
 	return $html;

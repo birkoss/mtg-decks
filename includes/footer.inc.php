@@ -2,8 +2,9 @@
 
   <?php if ($action == "edit") { ?>
     <nav class="navbar fixed-bottom navbar-expand-sm navbar-light bg-light" style="justify-content: flex-end;">
+      <button class="btn btn-primary btn-search-cards my-2 my-sm-0">Ajouter une carte</button>
       <div id="save-results" class="text-muted"></div>
-      <button class="btn btn-secondary btn-save my-2 my-sm-0">Save</button>
+      <button class="btn btn-secondary btn-save my-2 my-sm-0">Enregistrer</button>
     </nav>
   <?php } ?>
 

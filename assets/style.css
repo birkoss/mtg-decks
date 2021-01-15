@@ -36,22 +36,26 @@ main.container {
 
 .mtg-card > .action {
     position: absolute;
-    bottom: 0;
-    width: 100%;
+    right: 0;
+    top: 0;
+    height: 100%;
     text-align: center;
     background-color: rgba(0, 0, 0, 0.6);
     padding: 10px 0;
 
-    justify-content: center;
+    justify-content:flex-start;
     display: flex;
+    flex-direction: column;
 }
 
 .mtg-card > .action > * {
+    margin-left: 10px;
     margin-right: 10px;
+    margin-bottom: 10px;
 }
 
 .mtg-card > .action input {
-    max-width: 50px;
+    max-width: 42px;
     text-align: center;
 }
 

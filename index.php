@@ -43,6 +43,8 @@ die("-------------------------");
 $deck = (isset($_GET['deck']) ? $_GET['deck'] : "");
 $action = (isset($_GET['action']) ? $_GET['action'] : "");
 $output = (isset($_GET['output']) && $_GET['output'] == "text" ? "text" : "image");
+$sort = (isset($_GET['sort']) && $_GET['sort'] == "category" ? "category" : "type");
+
 
 if ($action == "image" && isset($_GET['image'])) {
 	$image_id = $_GET['image'];
@@ -82,8 +84,6 @@ if ($deck != "" ) {
 				$colors = $card_data['colors'];
 			}
 
-			$type = get_card_type($card_data['type_line']);
-
 			$result = $stmt->get_result();
 			if ($result->num_rows) {
 				$card = $result->fetch_assoc();
@@ -97,7 +97,7 @@ if ($deck != "" ) {
 					"lang" => $card_data['lang'],
 					"date_added" => date("Y-m-d H:i:s"),
 					"date_updated" => date("Y-m-d H:i:s"),
-					"type" => $type,
+					"type" => get_card_type($card_data['type_line']),
 					"data" => json_encode($card_data)
 				);
 
@@ -114,12 +114,18 @@ if ($deck != "" ) {
 
 			$card['qty'] = 1;
 			$card['is_starred'] = 0;
+			$card['is_wishlist'] = 0;
 			$html = generate_card($card);
 			
 			$stmt->close();
 			$mysqli->close();
 
-			die($html);
+			$output = array(
+				"card" => $card,
+				"html" => $html
+			);
+
+			die( json_encode($output) );
 		} else if ($_POST['action'] == "save") {
 			$mysqli = new mysqli("127.0.0.1", $DB_USERNAME, $DB_PASSWORD, $DB_NAME);
 			$mysqli->set_charset('utf8mb4');
@@ -129,22 +135,20 @@ if ($deck != "" ) {
 			$current_cards = get_cards($deck);
 
 			/* Get the existing saved cards for a backup purpose */
-			$deck_backup = array();
-			$select = $mysqli->prepare("SELECT dc.qty, dc.type, dc.card_id, dc.is_starred, dc.category FROM deck_cards dc WHERE dc.deck_id=?");
+			$select = $mysqli->prepare("SELECT dc.qty, dc.card_id, dc.is_starred, dc.is_wishlist, dc.category FROM deck_cards dc WHERE dc.deck_id=?");
 			$select->bind_param("s", $deck);
 			$select->execute();
 		
+			$deck_backup = array();
 			$result = $select->get_result();
 			if ($result->num_rows) {
 				while ($card = $result->fetch_assoc()) {
-					if (!isset($deck_backup[$card['type']])) {
-						$deck_backup[ $card['type'] ] = array();
-					}
-					$deck_backup[ $card['type'] ][] = array(
+					$deck_backup[] = array(
 						"id" => $card['card_id'],
 						"qty" => $card['qty'],
 						"category" => $card['category'],
-						"is_starred" => $card['is_starred']
+						"is_starred" => $card['is_starred'],
+						"is_wishlist" => $card['is_wishlist']
 					);
 				}
 			}
@@ -160,68 +164,63 @@ if ($deck != "" ) {
 			);
 
 			/* Update quantity or add new cards in deck */
-			foreach ($cards as $type_id => $type_cards) {
-				foreach ($type_cards as $card) {
-					$stats['total']++;
+			foreach ($cards as $card) {
+				$stats['total']++;
 
-					$existing = false;
-					$need_update = false;
-					if (isset($current_cards[$type_id])) {
-						foreach ($current_cards[$type_id] as $current_index => $current_card) {
-							if ($current_card['id'] == $card['card_id']) {
-								$existing = true;
-	
-								if ($current_card['qty'] != $card['qty']
-									|| $current_card['is_starred'] != $card['is_starred']
-									|| $current_card['category'] != $card['category']) {
-									$need_update = true;
-								}
-	
-								// Remove it from the existing index (to be able to delete the remaining)
-								$current_cards[$type_id][$current_index] = null;
-								break;
-							}
+				$existing = false;
+				$need_update = false;
+				foreach ($current_cards as $current_index => $current_card) {
+					if ($current_card['id'] == $card['card_id']) {
+						$existing = true;
+
+						if ($current_card['qty'] != $card['qty']
+							|| $current_card['is_starred'] != $card['is_starred']
+							|| $current_card['is_wishlist'] != $card['is_wishlist']
+							|| $current_card['category'] != $card['category']) {
+							$need_update = true;
+						}
+
+						// Remove it from the existing index (to be able to delete the remaining)
+						$current_cards[$current_index] = null;
+						break;
+					}
+				}
+
+				$now = date("Y-m-d H:i:s");
+
+				if ($existing) {
+					if ($need_update) {
+						$update = $mysqli->prepare("UPDATE deck_cards set qty=?, is_starred=?, is_wishlist=?, category=?, date_updated=? where deck_id=? AND card_id=?;");
+						$update->bind_param("sddssss", $card['qty'], $card['is_starred'], $card['is_wishlist'], $card['category'], $now, $deck, $card['card_id']);
+						$updated = $update->execute();
+						$update->close();
+		
+						if ($updated) {
+							$stats['updated']++;
 						}
 					}
-
-					$now = date("Y-m-d H:i:s");
-
-					if ($existing) {
-						if ($need_update) {
-							$update = $mysqli->prepare("UPDATE deck_cards set qty=?, is_starred=?, category=?, date_updated=? where deck_id=? AND card_id=? AND type=?;");
-							$update->bind_param("sdsssss", $card['qty'], $card['is_starred'], $card['category'], $now, $deck, $card['card_id'], $type_id);
-							$updated = $update->execute();
-							$update->close();
-			
-							if ($updated) {
-								$stats['updated']++;
-							}
-						}
-					} else {
-						$insert = $mysqli->prepare("INSERT INTO deck_cards (deck_id, card_id, type, qty, category, is_starred, date_added, date_updated) VALUES (?, ?, ?, ?, ?, ?, ?, ?);");
-						$insert->bind_param("sssssdss", $deck, $card['card_id'], $type_id, $card['qty'], $card['category'], $card['is_starred'], $now, $now);
-						$added = $insert->execute();
-						$insert->close();
-		
-						if ($added) {
-							$stats['added']++;
-						}
+				} else {
+					$insert = $mysqli->prepare("INSERT INTO deck_cards (deck_id, card_id, qty, category, is_starred, is_wishlist, date_added, date_updated) VALUES (?, ?, ?, ?, ?, ?, ?, ?);");
+					$insert->bind_param("ssssddss", $deck, $card['card_id'], $card['qty'], $card['category'], $card['is_starred'], $card['is_wishlist'], $now, $now);
+					$added = $insert->execute();
+					$insert->close();
+	
+					if ($added) {
+						$stats['added']++;
 					}
 				}
 			}
 
 			/* Delete existing card not in the deck anymore */
-			foreach ($current_cards as $type_id => $type_cards) {
-				foreach ($type_cards as $card) {
-					if ($card != null) {
-						$delete = $mysqli->prepare("DELETE FROM deck_cards WHERE deck_id=? AND card_id=? AND type=?;");
-						$delete->bind_param("sss", $deck, $card['id'], $type_id);
-						$deleted = $delete->execute();
-						$delete->close();
+			foreach ($current_cards as $card) {
+				if ($card != null) {
+					$delete = $mysqli->prepare("DELETE FROM deck_cards WHERE deck_id=? AND card_id=?;");
+					$delete->bind_param("ss", $deck, $card['id']);
+					$deleted = $delete->execute();
+					$delete->close();
 
-						if ($deleted) {
-							$stats['deleted']++;
-						}
+					if ($deleted) {
+						$stats['deleted']++;
 					}
 				}
 			}
@@ -251,6 +250,9 @@ if ($deck != "" ) {
 include("includes/header.inc.php");
 
 $categories = array(
+	"commander" => array(
+		"label" => "Commander"
+	),
 	"lands" => array(
 		"label" => "Lands"
 	),
@@ -265,6 +267,9 @@ $categories = array(
 	),
 	"strategy" => array(
 		"label" => "Strategy"
+	),
+	"" => array(
+		"label" => "Uncategorized"
 	)
 );
 
@@ -275,23 +280,23 @@ $types = array(
 		"is-legendary" => 1,
 		"limit" => 1
 	),
-	"creatures" => array(
+	"creature" => array(
 		"label" => "Creatures",
 		"type" => "creature"
 	),
-	"sorceries" => array(
+	"sorcery" => array(
 		"label" => "Sorceries",
 		"type" => "sorcery"
 	),
-	"instants" => array(
+	"instant" => array(
 		"label" => "Instants",
 		"type" => "instant"
 	),
-	"enchantments" => array(
+	"enchantment" => array(
 		"label" => "Enchantments",
 		"type" => "enchantment"
 	),
-	"artifacts" => array(
+	"artifact" => array(
 		"label" => "Artifacts",
 		"type" => "artifact"
 	),
@@ -299,17 +304,93 @@ $types = array(
 		"label" => "Planeswalker",
 		"type" => "planeswalker"
 	),
-	"lands" => array(
+	"land" => array(
 		"label" => "Lands",
 		"type" => "land"
-	),
-	"wishlist" => array(
-		"label" => "Wishlist",
-		"exclude" => true
 	)
 );
 
-if ($action == "preview" || $action == "edit") {
+if ($action == "edit") {
+	$all_cards = get_cards($deck);
+	$sections = ($sort == "type" ? $types : $categories);
+
+	$cards = array(
+		"deck" => array(),
+		"wishlist" => array()
+	);
+
+	foreach ($all_cards as $card) {
+		$card_type = ($card['is_wishlist'] == 1 ? "wishlist" : "deck");
+		$cards[$card_type][] = $card;
+	}
+	?>
+	<ul class="nav nav-tabs" style="margin: 20px 0;">
+		<?php foreach ($cards as $type_id => $type_cards) { ?>
+			<li class="nav-item">
+				<a class="nav-link<?php echo ($type_id == "deck" ? " active" : "") ?>" data-toggle="tab" href="#<?php echo $type_id ?>"><?php echo $type_id ?> (<?php echo count($type_cards) ?>)</a>
+			</li>
+		<?php } ?>
+	</ul>
+	<?php
+	?>
+	<div class="tab-content">
+		<?php
+		foreach ($cards as $type_id => $type_cards) {
+			?>
+			<div class="tab-pane fade<?php echo ($type_id == "deck" ? " active show" : "") ?>" id="<?php echo $type_id; ?>">
+
+				<?php
+				echo '<div class="types my-5">';
+				$commander_colors = [];
+				foreach($sections as $section_id => $section) {
+					//$is_legendary = (isset($type['is-legendary']) ? (int)$type['is-legendary'] : 0);
+					//$limit = (isset($type['limit']) ? (int)$type['limit'] : 0);
+					//$card_type = (isset($type['type']) ? (int)$type['type'] : "");
+					//$has_cards = (isset($cards[$type_id]) && count($cards[$type_id]) > 0 ? true : false);
+
+					/* No cards in preview mode, skip this card types content */
+					$cards = array();
+					foreach ($type_cards as $single_card) {
+						if ($single_card['category'] == "commander") {
+							$commander_colors = explode(",", $single_card['colors']);
+						}
+						if ($single_card[ $sort ] == $section_id) {
+							$cards[] = $single_card;
+						}
+					}
+					?>
+					<div class="card-section card border-primary mb-5"<?php echo (count($cards) == 0 ? " style='display: none'" : "") ?> data-section-id="<?php echo $section_id ?>">
+					<div class="card-header">
+						<span><?php echo $section['label'] ?><span class="cards-total"><?php echo count($cards) ?></span></span>
+					</div>
+					<div class="card-body mtg-cards">
+						<?php 
+							foreach ($cards as $card) {
+								if ($output == "image") {
+									echo generate_card($card);
+								} else {
+									echo $card['qty'] . " x " . $card['name_fr'] . " (". $card['name_en'].")<br />";
+								}
+							}
+						?>
+					</div>
+					</div>
+					<?php
+				}
+				echo '</div>';
+				?>
+			</div>
+			<?php
+		}
+		?>
+	</div>
+	<?php
+	echo '<script>var commander_colors = ' . json_encode($commander_colors) . ';</script>';
+	echo "<script>var sort = '" . $sort . "';</script>";
+
+	include("includes/modals.inc.php");
+
+} else if ($action == "preview__" || $action == "edit") {
 	$cards = get_cards($deck);
 
 	echo '<div class="types my-5">';
@@ -360,66 +441,7 @@ if ($action == "preview" || $action == "edit") {
 
 	if ($action == "edit") {
 		?>
-		<div class="modal fade" id="modalSearchCard" data-backdrop="static" data-keyboard="false">
-			<div class="modal-dialog" role="document">
-				<div class="modal-content">
-				<div class="modal-header" style="align-items: center;">
-					<h5 class="modal-title">Recherche </h5>
-
-					<div class="modal-lang btn-group btn-group-toggle ml-3" data-toggle="buttons" style="">
-						<label class="btn btn-primary"><input type="radio" name="options" id="option1" value="fr" autocomplete="off" checked=""> Français</label>
-						<label class="btn btn-primary"><input type="radio" name="options" id="option2" value="en" autocomplete="off"> Anglais</label>
-					</div>
-
-					<button type="button" class="close" data-dismiss="modal" aria-label="Close">
-					<span aria-hidden="true">&times;</span>
-					</button>
-				</div>
-				<div class="modal-body">
-					<form id="formSearchCard">
-					<div class="form-group">
-						<label for="inputSearchCard">Nom de la carte</label>
-						<input type="text" class="form-control" style="max-width: 300px;" id="inputSearchCard" placeholder="Nom de la carte..." autocomplete="off" />
-						</div>
-					</form>
-					<div id="resultSearchCard"></div>
-				</div>
-				<div class="modal-footer">
-					<button type="button" class="btn btn-secondary" data-dismiss="modal">Fermer</button>
-				</div>
-				</div>
-			</div>
-		</div>
-		<div class="modal fade" id="modalCategory" data-backdrop="static" data-keyboard="false">
-			<div class="modal-dialog" role="document">
-				<div class="modal-content">
-				<div class="modal-header" style="align-items: center;">
-					<h5 class="modal-title">Catégorie</h5>
-
-					<button type="button" class="close" data-dismiss="modal" aria-label="Close">
-					<span aria-hidden="true">&times;</span>
-					</button>
-				</div>
-				<div class="modal-body">
-					<div class="list-group">
-						<?php
-						foreach ($categories as $category_id => $category) {
-							?>
-							<a href="#" data-category="<?php echo $category_id ?>" class="card-category list-group-item list-group-item-action d-flex justify-content-between align-items-center">
-								<?php echo $category['label'] ?>
-								<span class="badge badge-primary badge-pill">0</span>
-							</a>
-							<?php
-						}
-						?>
-					</div>
-				</div>
-				<div class="modal-footer">
-					<button type="button" class="btn btn-secondary" data-dismiss="modal">Fermer</button>
-				</div>
-				</div>
-			</div>
-		</div>
+		
 		<?php
 	}
 } else if ($action == "stats") {

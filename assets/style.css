@@ -24,6 +24,10 @@ main.container {
     opacity: 0.5;
 }
 
+.cards-total {
+    margin-left: 10px;
+}
+
 .mtg-cards > .mtg-card[data-starred="1"] img {
     opacity: 1;
 }

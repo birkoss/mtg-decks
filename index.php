@@ -253,9 +253,6 @@ $categories = array(
 	"commander" => array(
 		"label" => "Commander"
 	),
-	"lands" => array(
-		"label" => "Lands"
-	),
 	"draw" => array(
 		"label" => "Draw"
 	),
@@ -267,6 +264,9 @@ $categories = array(
 	),
 	"strategy" => array(
 		"label" => "Strategy"
+	),
+	"lands" => array(
+		"label" => "Lands"
 	),
 	"" => array(
 		"label" => "Uncategorized"
@@ -310,7 +310,7 @@ $types = array(
 	)
 );
 
-if ($action == "edit") {
+if ($action == "edit" || $action == "preview") {
 	$all_cards = get_cards($deck);
 	$sections = ($sort == "type" ? $types : $categories);
 
@@ -327,7 +327,7 @@ if ($action == "edit") {
 	<ul class="nav nav-tabs" style="margin: 20px 0;">
 		<?php foreach ($cards as $type_id => $type_cards) { ?>
 			<li class="nav-item">
-				<a class="nav-link<?php echo ($type_id == "deck" ? " active" : "") ?>" data-toggle="tab" href="#<?php echo $type_id ?>"><?php echo $type_id ?> (<?php echo count($type_cards) ?>)</a>
+				<a class="nav-link<?php echo ($type_id == "deck" ? " active" : "") ?>" data-toggle="tab" href="#<?php echo $type_id ?>"><?php echo $type_id ?> <span class="badge badge-primary badge-pill tab-total">2</span></a>
 			</li>
 		<?php } ?>
 	</ul>
@@ -353,6 +353,9 @@ if ($action == "edit") {
 					foreach ($type_cards as $single_card) {
 						if ($single_card['category'] == "commander") {
 							$commander_colors = explode(",", $single_card['colors']);
+							if ($sort == "type") {
+								$single_card['type'] = "commander";
+							}
 						}
 						if ($single_card[ $sort ] == $section_id) {
 							$cards[] = $single_card;
@@ -361,7 +364,7 @@ if ($action == "edit") {
 					?>
 					<div class="card-section card border-primary mb-5"<?php echo (count($cards) == 0 ? " style='display: none'" : "") ?> data-section-id="<?php echo $section_id ?>">
 					<div class="card-header">
-						<span><?php echo $section['label'] ?><span class="cards-total"><?php echo count($cards) ?></span></span>
+						<span><?php echo $section['label'] ?><span class="badge badge-primary badge-pill cards-total"><?php echo count($cards) ?></span></span>
 					</div>
 					<div class="card-body mtg-cards">
 						<?php 

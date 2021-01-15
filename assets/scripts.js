@@ -108,8 +108,13 @@ jQuery(document).ready(function() {
                     }).done(function (res) {
                         data = JSON.parse(res);
 
+                        let section_id = data['card'][sort];
+                        if (section_id == undefined) {
+                            section_id = "";
+                        }
+
                         /* Add the card in the correct section */
-                        add_card(data['card'][sort], data['html']);
+                        add_card(section_id, data['html']);
 
                         /* Set it as a wishlist if it's the current tab */
                         if (jQuery(".tab-pane.active").attr("id") === "wishlist") {
@@ -117,7 +122,7 @@ jQuery(document).ready(function() {
                         }
 
                         /* Sort the cards by name for the active Card Type */
-                        sort_section(".tab-pane.active .card-section[data-section-id='" + data['card'][sort] + "'] .mtg-cards");
+                        sort_section(".tab-pane.active .card-section[data-section-id='" + section_id + "'] .mtg-cards");
 
                         /* Enable cards events */
                         create_deck_cards_events();
@@ -240,6 +245,7 @@ function show_modal(type) {
 }
 
 function add_card(section_id, card_html) {
+    console.log(".tab-pane.active .card-section[data-section-id='" + section_id + "'] .mtg-cards");
     jQuery(".tab-pane.active .card-section[data-section-id='" + section_id + "'] .mtg-cards").append(card_html);
     jQuery(".tab-pane.active .card-section[data-section-id='" + section_id + "']").show();
 
@@ -252,7 +258,7 @@ function update_cards_total() {
         jQuery(type_element).find(".mtg-card").each(function (card_index, card_element) {
             total += parseInt(jQuery(card_element).attr("data-qty"));
         });
-        jQuery(type_element).find(".cards-total").html(" x " + total);
+        jQuery(type_element).find(".cards-total").html(total);
 
         if (total === 0) {
             jQuery(type_element).hide();
@@ -268,6 +274,18 @@ function update_cards_total() {
                 jQuery(type_element).find(".btn-search-cards").show();
             }
         }
+    });
+
+    
+    jQuery(".nav-tabs .nav-link").each(function (tab_index, tab_element) {
+        let tab_id = jQuery(this).attr("href").substr(1);
+
+        let total = 0;
+        jQuery("#" + tab_id + " .cards-total").each(function (total_index, total_element) {
+            total += parseInt(jQuery(this).html());
+        });
+
+        jQuery(this).find(".tab-total").html(total);
     });
 }
 
@@ -373,7 +391,9 @@ function create_deck_cards_events() {
             jQuery(buttonWishlist).click(function(event) {
                 event.preventDefault();
 
-                let is_wishlist = jQuery(this).parents(".mtg-card").attr("data-wishlist");
+                let card = jQuery(this).parents(".mtg-card");
+
+                let is_wishlist = jQuery(card).attr("data-wishlist");
 
                 jQuery(this).removeClass("btn-info").removeClass("btn-secondary");
 
@@ -383,7 +403,14 @@ function create_deck_cards_events() {
                     jQuery(this).addClass("btn-info");
                 }
 
-                jQuery(this).parents(".mtg-card").attr("data-wishlist", (is_wishlist == 1 ? 0 : 1));
+                jQuery(card).attr("data-wishlist", (is_wishlist == 1 ? 0 : 1));
+
+                let card_destination = (jQuery(card).attr("data-wishlist") == 1 ? "wishlist" : "deck");
+
+                let card_parent_section = jQuery(card).parents(".card-section").attr("data-section-id");
+                jQuery(card).detach().appendTo(jQuery("#" + card_destination + " .card-section[data-section-id='" + card_parent_section + "'] .mtg-cards"));
+
+                update_cards_total();
             });
 
             /* Button CATEGORY */

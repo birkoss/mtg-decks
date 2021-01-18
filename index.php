@@ -7,7 +7,7 @@ ini_set('display_errors', 1); ini_set('display_startup_errors', 1); error_report
 // @TODO: Add the qty in a badge on the card (always visible, and updated)
 // @TODO: Prevent adding a card with it already exists in the current TYPE (prevent duplicate, and in the total deck)
 // @TODO: Prevent search without keyword (min length)
-// @TODO: Add navbar for view mode (picture mode, compact mode, stats, etc.)
+// @TODO: Show starting hand example (+ lands in 100 generations)
 
 include("includes/var.inc.php");
 include("includes/functions.inc.php");
@@ -82,7 +82,11 @@ if ($deck != "" ) {
 			if (isset($card_data['card_faces']) && count($card_data['card_faces']) > 1) {
 				$name_fr = (isset($card_data['card_faces'][0]['printed_name']) ? $card_data['card_faces'][0]['printed_name'] : "");
 				$name_en = $card_data['card_faces'][0]['name'];
-				$colors = $card_data['card_faces'][0]['colors'];
+				if (isset($card_data['card_faces'][0]['colors'])) {
+					$colors = $card_data['card_faces'][0]['colors'];
+				} else {
+					$colors = $card_data['colors'];
+				}
 			} else {
 				$name_fr = (isset($card_data['printed_name']) ? $card_data['printed_name'] : "");
 				$name_en = $card_data['name'];
@@ -258,14 +262,29 @@ $categories = array(
 	"commander" => array(
 		"label" => "Commander"
 	),
+	"tribal" => array(
+		"label" => "Creatures in Tribe"
+	),
+	"disruption" => array(
+		"label" => "Disruption"
+	),
+	"protection" => array(
+		"label" => "Protection"
+	),
 	"draw" => array(
-		"label" => "Draw"
+		"label" => "Card Advantage"
 	),
 	"ramp" => array(
 		"label" => "Ramp"
 	),
 	"removal" => array(
 		"label" => "Removal"
+	),
+	"lifegain" => array(
+		"label" => "Lifegain"
+	),
+	"payoff" => array(
+		"label" => "Payoff"
 	),
 	"strategy" => array(
 		"label" => "Strategy"
@@ -398,13 +417,38 @@ if ($action == "edit" || $action == "preview") {
 
 	include("includes/modals.inc.php");
 
+} else if ($action == "export") {
+	$cards = get_cards($deck);
+	?>
+	<div class="card mb-3 mt-3">
+		<div class="card-header">Export</div>
+		<div class="card-body">
+			<?php
+				foreach ($cards as $single_card) {
+					if ($single_card['is_wishlist'] == 0) {
+						echo $single_card['qty']."x ".$single_card['name_en']."<br />";
+					}
+				}
+			?>
+		</div>
+	</div>
+	<?php
 } else if ($action == "stats") {
 	$cards = get_cards($deck);
 
 	$mana_costs = array();
 	$unique_colors = array();
+	$total_costs = array(
+		"amount" => 0,
+		"total" => 0
+	);
+	$total_costs_with_lands = array(
+		"amount" => 0,
+		"total" => 0
+	);
 
 	$card_colors = array();
+	$card_colors_pip = array();
 
 	$card_types = array(
 		"creature" => 0,
@@ -430,8 +474,32 @@ if ($action == "edit" || $action == "preview") {
 		}
 
 		$card_types[ $card['type'] ]++;
+
+		$total_costs_with_lands['amount'] += $card['cmc'];
+		$total_costs_with_lands['total']++;
 		
 		if ($card['type'] != "land") {
+			// Get unique color pip
+			$data = json_decode($card['data'], true);
+			$mana_cost = "";
+			if (isset($data['mana_cost'])) {
+				$mana_cost = $data['mana_cost'];
+			} else {
+				$mana_cost = $data['card_faces'][0]['mana_cost'];
+			}
+			if (preg_match_all("|{([^}]+)}|", $mana_cost, $matches) ) {
+				foreach ($matches[1] as $single_color) {
+					if (!is_numeric($single_color)) {
+						$parts = explode("/", $single_color);
+						foreach ($parts as $single_part) {
+							if (!isset($card_colors_pip[$colors[$single_part]])) {
+								$card_colors_pip[$colors[$single_part]] = 0;
+							}
+							$card_colors_pip[$colors[$single_part]]++;
+						}
+					}
+				}
+			}
 
 			$color = $card['colors'];
 			if ($color == "") {
@@ -450,6 +518,9 @@ if ($action == "edit" || $action == "preview") {
 			}
 
 			$unique_colors[ $color ] = 1;
+
+			$total_costs['amount'] += $card['cmc'];
+			$total_costs['total']++;
 
 			if (!isset($mana_costs[ $card['cmc'] ])) {
 				$mana_costs[ $card['cmc'] ] = array();
@@ -493,7 +564,7 @@ if ($action == "edit" || $action == "preview") {
 	//print_r($mana_costs);
 	?>
 	<div class="card bg-light mb-3 mt-3">
-		<div class="card-header">Mana Curve</div>
+		<div class="card-header">Mana Curve (Avg: <?php echo number_format($total_costs['amount'] / $total_costs['total'], 2) ?>, <?php echo number_format($total_costs_with_lands['amount'] / $total_costs_with_lands['total'], 2) ?> with lands)</div>
 		<div class="card-body">
 			<canvas id="canvas_casting_cost"></canvas>
 		</div>
@@ -515,6 +586,20 @@ if ($action == "edit" || $action == "preview") {
 					<canvas id="canvas_card_color"></canvas>
 				</div>
 			</div>
+		</div>
+	</div>
+
+	<div class="row">
+		<div class="col-sm">
+			<div class="card bg-light mb-3">
+				<div class="card-header">Card Color pips</div>
+				<div class="card-body">
+					<canvas id="canvas_card_color_pip"></canvas>
+				</div>
+			</div>
+		</div>
+		<div class="col-sm">
+			&nbsp;
 		</div>
 	</div>
 	
@@ -560,15 +645,23 @@ if ($action == "edit" || $action == "preview") {
 		var data_card_color = {
 			datasets: [{
 					data: <?php echo json_encode(array_values($card_colors)) ?>,
-					backgroundColor: <?php echo json_encode(array_keys($card_colors)) ?>,
-					label: 'Dataset 1'
+					backgroundColor: <?php echo json_encode(array_keys($card_colors)) ?>
 				}],
 				labels: <?php echo json_encode(array_keys($card_colors)) ?>
+		};
+
+		var data_card_color_pip = {
+			datasets: [{
+					data: <?php echo json_encode(array_values($card_colors_pip)) ?>,
+					backgroundColor: <?php echo json_encode(array_keys($card_colors_pip)) ?>
+				}],
+				labels: <?php echo json_encode(array_keys($card_colors_pip)) ?>
 		};
 
 		var ctx_casting_cost = document.getElementById('canvas_casting_cost').getContext('2d');
 		var ctx_card_type = document.getElementById('canvas_card_type').getContext('2d');
 		var ctx_card_color = document.getElementById('canvas_card_color').getContext('2d');
+		var ctx_card_color_pip = document.getElementById('canvas_card_color_pip').getContext('2d');
 	</script>
 	<?php
 } else {

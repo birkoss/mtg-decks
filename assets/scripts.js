@@ -46,6 +46,14 @@ jQuery(document).ready(function() {
                 responsive: true,
             }
         });
+
+        var chart_card_color_pip = new Chart(ctx_card_color_pip, {
+            type: 'pie',
+            data: data_card_color_pip,
+            options: {
+                responsive: true,
+            }
+        });
     }
 
     jQuery("a.card-category").click(function(event) {

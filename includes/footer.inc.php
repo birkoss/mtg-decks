@@ -15,6 +15,11 @@
               "url" => "/deck/".$deck."/stats/",
               "label" => "Stats",
               "action" => "stats"
+            ),
+            array(
+              "url" => "/deck/".$deck."/export/",
+              "label" => "Export",
+              "action" => "export"
             )
           );
 
@@ -26,7 +31,7 @@
             <?php
           }
 
-          if ($action != "stats") {
+          if ($action == "edit" || $action == "preview") {
         ?>
         <li class="nav-item dropdown">
           <a class="nav-link dropdown-toggle" data-toggle="dropdown" href="#" role="button" aria-haspopup="true" aria-expanded="false">Sort</a>
